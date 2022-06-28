@@ -19,9 +19,8 @@ class NotifyCommentReply extends Notification implements SubscribableNotificatio
      */
     public function __construct($reply)
     {
-        $this->reply   = $reply;
+        $this->reply = $reply;
     }
-
 
     public static function subscriptionType(): string
     {
@@ -39,5 +38,4 @@ class NotifyCommentReply extends Notification implements SubscribableNotificatio
     {
         return [];
     }
-
 }

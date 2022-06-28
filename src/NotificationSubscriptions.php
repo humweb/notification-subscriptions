@@ -6,7 +6,6 @@ use Humweb\Notifications\Models\NotificationSubscription;
 
 class NotificationSubscriptions
 {
-
     /**
      * @param          $user
      * @param  string  $type
@@ -16,8 +15,8 @@ class NotificationSubscriptions
     public function subscribe($user, string $type)
     {
         return NotificationSubscription::updateOrCreate([
-            'type'    => $type,
-            'user_id' => $user->id
+            'type' => $type,
+            'user_id' => $user->id,
         ]);
     }
 
@@ -70,7 +69,7 @@ class NotificationSubscriptions
             data_get($user, 'name'),
             data_get($user, 'last_name'),
             data_get($user, 'first_name'),
-            data_get($user, 'id')
+            data_get($user, 'id'),
         ])
             ->filter()
             ->first();

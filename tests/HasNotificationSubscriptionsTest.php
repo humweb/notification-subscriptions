@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->user  = User::factory()->create();
+    $this->user = User::factory()->create();
     $this->user2 = User::factory()->create();
 
     $this->notification = $this->user->subscribe('comment.created');
@@ -17,19 +17,19 @@ beforeEach(function () {
     $this->user2->subscribe('comment.created');
 
     config([
-        'subscribable.user_model'    => User::class,
+        'subscribable.user_model' => User::class,
         'subscribable.notifications' => [
             'comment.created' => [
-                'label'       => 'Comments',
+                'label' => 'Comments',
                 'description' => 'Get notified everytime a user comments on one of your posts.',
-                'class'       => NotifyCommentCreated::class,
+                'class' => NotifyCommentCreated::class,
             ],
             'comment.replied' => [
-                'label'       => 'Comment replies',
+                'label' => 'Comment replies',
                 'description' => 'Get notified everytime a user replies to your comments.',
-                'class'       => NotifyCommentReply::class,
-            ]
-        ]
+                'class' => NotifyCommentReply::class,
+            ],
+        ],
     ]);
 });
 
@@ -46,7 +46,6 @@ it('can get user subscriptions', function () {
 
 
 it('can unsubscribe from notifications', function () {
-
     expect($this->user->notificationSubscriptionExists('comment.created'))->toBeTrue();
     expect($this->user->notificationSubscriptionExists('comment.replied'))->toBeTrue();
 
@@ -58,7 +57,6 @@ it('can unsubscribe from notifications', function () {
 });
 
 it('can unsubscribe from all notifications', function () {
-
     expect($this->user->notificationSubscriptionExists('comment.created'))->toBeTrue();
     expect($this->user->notificationSubscriptionExists('comment.replied'))->toBeTrue();
 
@@ -70,7 +68,5 @@ it('can unsubscribe from all notifications', function () {
 
 
 it('can get subscription user', function () {
-
     expect($this->notification->user->id)->toEqual($this->user->id);
 });
-
