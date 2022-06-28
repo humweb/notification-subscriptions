@@ -20,9 +20,8 @@ class NotifyCommentCreated extends Notification implements SubscribableNotificat
      */
     public function __construct($comment)
     {
-        $this->comment   = $comment;
+        $this->comment = $comment;
     }
-
 
     public static function subscriptionType(): string
     {
@@ -40,5 +39,4 @@ class NotifyCommentCreated extends Notification implements SubscribableNotificat
     {
         return [];
     }
-
 }

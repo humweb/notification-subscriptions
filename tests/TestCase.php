@@ -2,10 +2,10 @@
 
 namespace Humweb\Notifications\Tests;
 
+use Humweb\Notifications\NotificationSubscriptionsServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Schema\Blueprint;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Humweb\Notifications\NotificationSubscriptionsServiceProvider;
 
 class TestCase extends Orchestra
 {
@@ -38,6 +38,5 @@ class TestCase extends Orchestra
 
         $migration = include __DIR__.'/../database/migrations/create_notification_subscriptions_table.php.stub';
         $migration->up();
-
     }
 }

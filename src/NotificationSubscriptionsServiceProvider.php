@@ -20,7 +20,6 @@ class NotificationSubscriptionsServiceProvider extends PackageServiceProvider
             ->hasMigration('create_notification_subscriptions_table');
     }
 
-
     public function register()
     {
         parent::register();
