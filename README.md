@@ -1,26 +1,20 @@
-# This is my package notification-subscriptions
+# Notification Subscriptions for Laravel
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/humweb/notification-subscriptions.svg?style=flat-square)](https://packagist.org/packages/humweb/notification-subscriptions)
-[![GitHub Tests Action Status](https://img.shields.io/github/workflow/status/humweb/notification-subscriptions/run-tests?label=tests)](https://github.com/humweb/notification-subscriptions/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/workflow/status/humweb/notification-subscriptions/Check%20&%20fix%20styling?label=code%20style)](https://github.com/humweb/notification-subscriptions/actions?query=workflow%3A"Check+%26+fix+styling"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/humweb/notification-subscriptions.svg?style=flat-square)](https://packagist.org/packages/humweb/notification-subscriptions)
+[//]: # ([![Latest Version on Packagist]&#40;https://img.shields.io/packagist/v/humweb/notification-subscriptions.svg?style=flat-square&#41;]&#40;https://packagist.org/packages/humweb/notification-subscriptions&#41;)
+[![Tests](https://github.com/humweb/notification-subscriptions/actions/workflows/run-tests.yml/badge.svg)](https://github.com/humweb/notification-subscriptions/actions/workflows/run-tests.yml)
+[![Code Style](https://github.com/humweb/notification-subscriptions/actions/workflows/php-cs-fixer.yml/badge.svg)](https://github.com/humweb/notification-subscriptions/actions/workflows/php-cs-fixer.yml)
+[![PHPStan](https://github.com/humweb/notification-subscriptions/actions/workflows/phpstan.yml/badge.svg)](https://github.com/humweb/notification-subscriptions/actions/workflows/phpstan.yml)
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+[//]: # ([![Total Downloads]&#40;https://img.shields.io/packagist/dt/humweb/notification-subscriptions.svg?style=flat-square&#41;]&#40;https://packagist.org/packages/humweb/notification-subscriptions&#41;)
 
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/notification-subscriptions.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/notification-subscriptions)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+Notification Subscriptions allows your users to subscribe to certain notifications in your application.
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require humweb/notification-subscriptions
+composer require humweb/notifications
 ```
 
 You can publish and run the migrations with:
@@ -36,24 +30,73 @@ You can publish the config file with:
 php artisan vendor:publish --tag="notification-subscriptions-config"
 ```
 
-This is the contents of the published config file:
+## Setup
+#### Notification Classes
+```php
+class NotifyCommentCreated extends Notification implements SubscribableNotification
+{
+    use Queueable;
+    use DispatchesNotifications;
 
+
+    public $comment;
+
+    /**
+     * @param $comment
+     */
+    public function __construct($comment)
+    {
+        $this->comment = $comment;
+    }
+
+    public static function subscriptionType(): string
+    {
+        return 'comment.created';
+    }
+
+    /**
+     * Get the notification's delivery channels.
+     *
+     * @param  mixed  $notifiable
+     *
+     * @return array
+     */
+    public function via($notifiable)
+    {
+        return [];
+    }
+}
+```
+<br />
+
+**Config file example**
 ```php
 return [
+    'user_model' => App\Models\User::class,
+    'notifications' => [
+        'comment.created' => [
+            'label'       => 'Comments',
+            'description' => 'Get notified everytime a user comments on one of your posts.',
+            'class'       => NotifyCommentCreated::class,
+        ],
+    ],
 ];
-```
 
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="notification-subscriptions-views"
 ```
+<br />
 
 ## Usage
+You will need to add `DispatchesNotifications` trait,
+and implement `SubscribableNotification` to your `Notifications` classes.
 
+#### Subscribe
 ```php
-$notificationSubscriptions = new Humweb\NotificationSubscriptions();
-echo $notificationSubscriptions->echoPhrase('Hello, Humweb!');
+$user = User::find(1);
+$user->subscribe('comment.created');
+
+// or
+
+$user->subscribe(new NotifyCommentCreated());
 ```
 
 ## Testing
