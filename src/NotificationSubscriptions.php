@@ -1,0 +1,78 @@
+<?php
+
+namespace Humweb\Notifications;
+
+use Humweb\Notifications\Models\NotificationSubscription;
+
+class NotificationSubscriptions
+{
+
+    /**
+     * @param          $user
+     * @param  string  $type
+     *
+     * @return mixed
+     */
+    public function subscribe($user, string $type)
+    {
+        return NotificationSubscription::updateOrCreate([
+            'type'    => $type,
+            'user_id' => $user->id
+        ]);
+    }
+
+    /**
+     * @param          $user
+     * @param  string  $type
+     *
+     * @return mixed
+     */
+    public function unsubscribe($user, string $type)
+    {
+        return NotificationSubscription::where(['type' => $type, 'user_id' => $user->id,])->delete();
+    }
+
+    /**
+     * @param $user
+     *
+     * @return mixed
+     */
+    public function unsubscribeFromAll($user)
+    {
+        return NotificationSubscription::where(['user_id' => $user->id])->delete();
+    }
+
+    /**
+     * @return string
+     */
+    public function getUserModel()
+    {
+        return config('subscribable.user_model');
+    }
+
+    /**
+     * @return array
+     */
+    public function getSubscribables()
+    {
+        return config('subscribable.notifications');
+    }
+
+    /**
+     * @param $user
+     *
+     * @return string|int
+     */
+    public function getUserLabel($user)
+    {
+        return collect([
+            data_get($user, 'email'),
+            data_get($user, 'name'),
+            data_get($user, 'last_name'),
+            data_get($user, 'first_name'),
+            data_get($user, 'id')
+        ])
+            ->filter()
+            ->first();
+    }
+}
