@@ -14,10 +14,7 @@ class NotificationSubscriptions
      */
     public function subscribe($user, string $type)
     {
-        return NotificationSubscription::updateOrCreate([
-            'type' => $type,
-            'user_id' => $user->id,
-        ]);
+        return $user->subscribe($type);
     }
 
     /**
@@ -28,7 +25,7 @@ class NotificationSubscriptions
      */
     public function unsubscribe($user, string $type)
     {
-        return NotificationSubscription::where(['type' => $type, 'user_id' => $user->id,])->delete();
+        return $user->unsubscribe($type);
     }
 
     /**
@@ -38,7 +35,7 @@ class NotificationSubscriptions
      */
     public function unsubscribeFromAll($user)
     {
-        return NotificationSubscription::where(['user_id' => $user->id])->delete();
+        return $user->unsubscribeFromAll();
     }
 
     /**

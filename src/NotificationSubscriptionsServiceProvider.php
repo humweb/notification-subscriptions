@@ -15,7 +15,7 @@ class NotificationSubscriptionsServiceProvider extends PackageServiceProvider
          * More info: https://github.com/spatie/laravel-package-tools
          */
         $package
-            ->name('notifications')
+            ->name('notification-subscriptions')
             ->hasConfigFile('notification-subscriptions')
             ->hasMigration('create_notification_subscriptions_table');
     }

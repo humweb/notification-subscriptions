@@ -49,7 +49,7 @@ it('can unsubscribe from notifications', function () {
     expect($this->user->notificationSubscriptionExists('comment.created'))->toBeTrue();
     expect($this->user->notificationSubscriptionExists('comment.replied'))->toBeTrue();
 
-    $this->user->unsubscribe('comment.replied');
+    $this->user->unsubscribe(new NotifyCommentReply(''));
 
     expect($this->user->notificationSubscriptionExists('comment.replied'))->toBeFalse();
     expect($this->user->notificationSubscriptionExists('comment.created'))->toBeTrue();
