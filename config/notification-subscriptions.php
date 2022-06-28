@@ -1,13 +1,15 @@
 <?php
 
 return [
-    'user_model' => App\Models\User::class,
+    //'user_model' => App\Models\User::class,
 
     'notifications' => [
-//        'fight.created' => [
-//            'label'       => 'Fight created',
-//            'description' => 'Get notified everytime a new fight is created',
-//            'class'       => \App\Notifications\NotifyFightCreated::class,
-//        ]
+        /*
+        'comment.created' => [
+            'label'       => 'Comments',
+            'description' => 'Get notified everytime a user comments on one of your posts.',
+            'class'       => NotifyCommentCreated::class,
+        ],
+        */
     ],
 ];

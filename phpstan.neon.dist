@@ -7,6 +7,9 @@ parameters:
         - src
         - config
         - database
+    excludePaths:
+        - tests/Stubs/*
+        - database/stubs/*
     tmpDir: build/phpstan
     checkOctaneCompatibility: true
     checkModelProperties: true
