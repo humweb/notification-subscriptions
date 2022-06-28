@@ -2,8 +2,6 @@
 
 namespace Humweb\Notifications;
 
-use Humweb\Notifications\Models\NotificationSubscription;
-
 class NotificationSubscriptions
 {
     /**

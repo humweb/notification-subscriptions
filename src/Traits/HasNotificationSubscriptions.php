@@ -52,6 +52,7 @@ trait HasNotificationSubscriptions
         if ($type instanceof SubscribableNotification) {
             $type = $type::subscriptionType();
         }
+
         return $type;
     }
 }
