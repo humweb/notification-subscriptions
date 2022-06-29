@@ -33,4 +33,5 @@ class NotificationSubscription extends Model
     {
         $query->where('type', $type);
     }
+
 }
