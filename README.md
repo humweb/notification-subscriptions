@@ -60,6 +60,10 @@ class User extends Authenticatable
 
 Open the `config/notification-subscriptions.php` file. This is where you define all the notification types users can subscribe to.
 
+#### 2. Define Notification Types and Channels
+
+In your `config/notification-subscriptions.php` file, define the types of notifications users can subscribe to. Each type should have a unique key, a human-readable label, a description, and an array of available `channels`. Each channel should have a `name` (its identifier, e.g., 'mail', 'database', 'sms') and a `label` (human-readable, e.g., 'Email', 'Site Notification').
+
 ```php
 <?php
 
@@ -73,11 +77,20 @@ return [
     'notifications' => [
         'app:updates' => [
             'label' => 'Application Updates',
-            'description' => 'Receive notifications about new features and important updates to the application.',
+            'description' => 'Receive notifications about new features and important updates.',
+            'class' => App\Notifications\AppUpdatesNotification::class, // Optional
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+                ['name' => 'database', 'label' => 'Site Notification'],
+                // Add more channels like ['name' => 'sms', 'label' => 'SMS Text Message']
+            ]
         ],
         'newsletter:marketing' => [
             'label' => 'Marketing Newsletter',
-            'description' => 'Get occasional updates about our products, special offers, and news.',
+            'description' => 'Get occasional updates about our products and special offers.',
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+            ]
         ],
         // Example: A notification type that might be tied to a specific Laravel Notification class
         'comment:created' => [
@@ -89,15 +102,39 @@ return [
 ];
 ```
 
-**Key configuration options:**
+### Channel Configuration
 
--   `user_model`: The class name of your User model.
--   `subscription_model`: The Eloquent model for storing subscriptions.
--   `table_name`: The database table for subscriptions.
--   `notifications`: An array where each key is a unique string identifying a notification type (e.g., `app:updates`).
-    -   `label`: A human-readable name for the notification, useful for displaying in user settings.
-    -   `description`: A more detailed explanation of the notification.
-    -   `class`: (Optional) The fully qualified class name of the Laravel Notification that corresponds to this type. This is useful for reference or if your dispatching logic needs to look up the class based on the type string. (e.g., `App\Notifications\CommentCreated::class`).
+The `channels` array for each notification type defines which delivery methods are available for that specific notification. Common channel names include:
+
+-   `mail` - Email notifications
+-   `database` - In-app notifications stored in the database
+-   `broadcast` - Real-time notifications via websockets
+-   `sms` - SMS text messages (requires additional setup)
+-   `slack` - Slack notifications
+-   Any custom channel you've implemented
+
+Each channel in the array should have:
+
+-   `name`: The technical identifier that matches Laravel's notification channel name
+-   `label`: A human-readable name to display in the UI
+
+The channels you configure here should match the channels your notification classes can actually send to. When using the `ChecksSubscription` trait, only the channels that both:
+
+1. Are configured for the notification type
+2. The user has subscribed to
+
+will be used for sending the notification.
+
+### Key Configuration Options
+
+-   **`user_model`**: The class name of your User model.
+-   **`subscription_model`**: The Eloquent model for storing subscriptions.
+-   **`table_name`**: The database table for subscriptions.
+-   **`notifications`**: An array where each key is a unique string identifying a notification type (e.g., `app:updates`).
+    -   **`label`**: A human-readable name for the notification, useful for displaying in user settings.
+    -   **`description`**: A more detailed explanation of the notification.
+    -   **`class`**: (Optional) The fully qualified class name of the Laravel Notification that corresponds to this type. This is useful for reference or if your dispatching logic needs to look up the class based on the type string.
+    -   **`channels`**: An array of available delivery channels for this notification type.
 
 <br />
 
@@ -304,102 +341,3 @@ Please review [our security policy](../../security/policy) on how to report secu
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
 
 ## Frontend Management (Optional - Example with Inertia/Vue)
-
-This package provides the backend logic. If you want a UI for users to manage their subscriptions, you'll need to build it in your application. Here's a conceptual example using Inertia.js and Vue.
-
-**1. Controller Methods:**
-
-Create a controller (e.g., `NotificationSubscriptionController`) to handle showing and updating settings:
-
-```php
-// app/Http/Controllers/NotificationSubscriptionController.php
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Humweb\Notifications\Facades\NotificationSubscriptions as NotificationSubscriptionsManager;
-use Illuminate\Validation\Rule;
-
-class NotificationSubscriptionController extends Controller
-{
-    public function index()
-    {
-        $user = Auth::user();
-        $definedTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
-
-        $subscriptionsData = collect($definedTypes)->map(function ($typeDetails, $typeKey) use ($user) {
-            $configuredChannels = $typeDetails['channels'] ?? [];
-
-            $channels = collect($configuredChannels)->map(function ($channelConfig) use ($user, $typeKey) {
-                return [
-                    'name' => $channelConfig['name'],
-                    'label' => $channelConfig['label'],
-                    'subscribed' => $user ? $user->isSubscribedTo($typeKey, $channelConfig['name']) : false,
-                ];
-            })->all();
-
-            return [
-                'type' => $typeKey,
-                'label' => $typeDetails['label'] ?? $typeKey,
-                'description' => $typeDetails['description'] ?? '',
-                'channels' => $channels,
-            ];
-        })->values()->all();
-
-        return Inertia::render('Profile/NotificationSettings', [
-            'subscriptionsData' => $subscriptionsData,
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $user = Auth::user();
-        $definedTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
-
-        $request->validate([
-            'type' => ['required', 'string', Rule::in(array_keys($definedTypes))],
-            'channel' => ['required', 'string'], // Add validation for allowed channels for type
-            'subscribed' => ['required', 'boolean'],
-        ]);
-
-        $type = $request->input('type');
-        $channelName = $request->input('channel');
-        $subscribed = $request->input('subscribed');
-
-        // Validate channel is valid for the type
-        $typeConfig = $definedTypes[$type] ?? null;
-        if (!$typeConfig || !collect($typeConfig['channels'] ?? [])->contains('name', $channelName)) {
-            return back()->withErrors(['channel' => 'Invalid channel for the notification type.'])->withInput();
-        }
-
-        if ($subscribed) {
-            $user->subscribe($type, $channelName);
-        } else {
-            $user->unsubscribe($type, $channelName);
-        }
-
-        return back()->with('success', 'Notification settings updated.');
-    }
-}
-```
-
-**2. Routes:**
-
-```php
-// routes/web.php
-use App\Http\Controllers\NotificationSubscriptionController;
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile/notification-settings', [NotificationSubscriptionController::class, 'index'])
-        ->name('profile.notification-settings.index');
-    Route::post('/profile/notification-settings', [NotificationSubscriptionController::class, 'store'])
-        ->name('profile.notification-settings.store');
-});
-```
-
-**3. Vue Component (e.g., `NotificationSettings.vue`):**
-
-(The Vue component provided in the prompt `resources/js/Pages/Profile/NotificationSettings.vue` is already up-to-date with channel logic, so it can be referenced here).
-
-Make sure your Vue component correctly iterates through `notificationType.channels` and submits `type`, `channel.name`, and the new `subscribed` state.
