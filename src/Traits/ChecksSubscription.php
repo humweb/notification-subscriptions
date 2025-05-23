@@ -14,7 +14,7 @@ trait ChecksSubscription
     {
         // Check if notification type is configured
         $notifications = config('notification-subscriptions.notifications', []);
-        if (!isset($notifications[static::subscriptionType()])) {
+        if (! isset($notifications[static::subscriptionType()])) {
             return [];
         }
 
@@ -33,4 +33,4 @@ trait ChecksSubscription
 
         return $subscribedChannels;
     }
-} 
+}

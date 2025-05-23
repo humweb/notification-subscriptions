@@ -5,7 +5,6 @@ namespace Humweb\Notifications\Database\Factories;
 use Humweb\Notifications\Database\Stubs\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-
 class UserFactory extends Factory
 {
     protected $model = User::class;
@@ -13,8 +12,8 @@ class UserFactory extends Factory
     public function definition()
     {
         return [
-            'email'   => $this->faker->email,
-            'name'   => $this->faker->userName,
+            'email' => $this->faker->email,
+            'name' => $this->faker->userName,
         ];
     }
 }

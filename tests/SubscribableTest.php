@@ -22,14 +22,14 @@ beforeEach(function () {
                 'channels' => [
                     ['name' => 'mail', 'label' => 'Email'],
                     ['name' => 'database', 'label' => 'Site Notification'],
-                ]
+                ],
             ],
             'comment:replied' => [
                 'label' => 'Comment replies',
                 'description' => 'Get notified everytime a user replies to your comments.',
                 'channels' => [
                     ['name' => 'mail', 'label' => 'Email'],
-                ]
+                ],
             ],
             'event:new' => [
                 'label' => 'New Events',
@@ -37,7 +37,7 @@ beforeEach(function () {
                 'channels' => [
                     ['name' => 'mail', 'label' => 'Email'],
                     ['name' => 'sms', 'label' => 'SMS'],
-                ]
+                ],
             ],
         ],
     ]);
@@ -70,8 +70,8 @@ it('does not create duplicate subscription for the same type and channel', funct
 
     $subscription = $this->user->subscribe('comment:created', 'mail'); // Try to subscribe again
     expect($subscription)->toBeInstanceOf(NotificationSubscription::class)
-        ->and($subscription->id)->toEqual($initialSubscription->id); 
-    
+        ->and($subscription->id)->toEqual($initialSubscription->id);
+
     expect($this->user->subscriptions()->where('type', 'comment:created')->where('channel', 'mail')->count())->toEqual(1);
 });
 
@@ -80,7 +80,7 @@ it('can check if user is subscribed to specific type and channel', function () {
     expect($this->user->isSubscribedTo('comment:created', 'database'))->toBeTrue();
     expect($this->user->isSubscribedTo('comment:replied', 'mail'))->toBeTrue();
     expect($this->user->isSubscribedTo('comment:replied', 'database'))->toBeFalse();
-    expect($this->user->isSubscribedTo('event:new', 'mail'))->toBeFalse(); 
+    expect($this->user->isSubscribedTo('event:new', 'mail'))->toBeFalse();
 
     expect($this->user2->isSubscribedTo('comment:created', 'mail'))->toBeTrue();
     expect($this->user2->isSubscribedTo('comment:created', 'database'))->toBeFalse();
@@ -92,7 +92,7 @@ it('can retrieve all user subscriptions (checks count)', function () {
     expect($subscriptions)->toHaveCount(3);
 });
 
-it('can get subscribed channels for a type', function() {
+it('can get subscribed channels for a type', function () {
     $subscribedChannels = $this->user->getSubscribedChannels('comment:created');
     expect($subscribedChannels)->toBeInstanceOf(Collection::class)
         ->toHaveCount(2)
@@ -102,30 +102,30 @@ it('can get subscribed channels for a type', function() {
     $otherSubscribedChannels = $this->user->getSubscribedChannels('comment:replied');
     expect($otherSubscribedChannels)->toHaveCount(1)
         ->toContain('mail');
-        
+
     $noSubscribedChannels = $this->user->getSubscribedChannels('event:new');
     expect($noSubscribedChannels)->toBeEmpty();
 });
 
 it('can unsubscribe user from a specific type and channel', function () {
     expect($this->user->isSubscribedTo('comment:created', 'database'))->toBeTrue();
-    
+
     $result = $this->user->unsubscribe('comment:created', 'database');
     expect($result)->toBeTrue();
 
     expect($this->user->isSubscribedTo('comment:created', 'database'))->toBeFalse();
-    expect($this->user->isSubscribedTo('comment:created', 'mail'))->toBeTrue(); 
+    expect($this->user->isSubscribedTo('comment:created', 'mail'))->toBeTrue();
     expect($this->user->subscriptions()->count())->toEqual(2);
 });
 
 it('unsubscribe returns false if user was not subscribed to type and channel', function () {
     expect($this->user->isSubscribedTo('event:new', 'mail'))->toBeFalse();
     $result = $this->user->unsubscribe('event:new', 'mail');
-    expect($result)->toBeFalse(); 
+    expect($result)->toBeFalse();
     expect($this->user->isSubscribedTo('event:new', 'mail'))->toBeFalse();
 });
 
-it('can unsubscribe user from all channels for a given type', function() {
+it('can unsubscribe user from all channels for a given type', function () {
     expect($this->user->isSubscribedTo('comment:created', 'mail'))->toBeTrue();
     expect($this->user->isSubscribedTo('comment:created', 'database'))->toBeTrue();
     expect($this->user->subscriptions()->where('type', 'comment:created')->count())->toEqual(2);
@@ -149,12 +149,12 @@ it('can unsubscribe user from all notifications (all types and channels)', funct
     expect($this->user->isSubscribedTo('comment:replied', 'mail'))->toBeFalse();
 });
 
-it('retrieves correct subscription model class name', function() {
+it('retrieves correct subscription model class name', function () {
     expect($this->user->getNotificationSubscriptionModel())->toEqual(NotificationSubscription::class);
 });
 
-it('subscription belongs to a user', function() {
+it('subscription belongs to a user', function () {
     $subscription = $this->user->subscriptions()->where('type', 'comment:created')->where('channel', 'mail')->first();
     expect($subscription->user)->toBeInstanceOf(User::class)
         ->and($subscription->user->id)->toEqual($this->user->id);
-}); 
+});

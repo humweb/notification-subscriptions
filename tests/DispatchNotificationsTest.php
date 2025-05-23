@@ -3,7 +3,6 @@
 use Humweb\Notifications\Database\Stubs\User;
 use Humweb\Notifications\Tests\Stubs\NotifyCommentCreated;
 use Humweb\Notifications\Tests\Stubs\NotifyCommentReply;
-use Humweb\Notifications\Tests\Stubs\NotifyFilteredComment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
@@ -28,7 +27,7 @@ beforeEach(function () {
             'channels' => [
                 ['name' => 'mail', 'label' => 'Email'],
                 ['name' => 'database', 'label' => 'Site Notification'],
-            ]
+            ],
         ],
         'comment:replied' => [
             'label' => 'Comment replies',
@@ -36,7 +35,7 @@ beforeEach(function () {
             'class' => NotifyCommentReply::class,
             'channels' => [
                 ['name' => 'mail', 'label' => 'Email'],
-            ]
+            ],
         ],
     ]);
 
@@ -48,8 +47,8 @@ beforeEach(function () {
 });
 
 it('dispatches notification to user subscribed to the type and a channel', function () {
-    $post = (object)['id' => 1, 'title' => 'Test Post']; // Mock post object
-    $comment = (object)['id' => 1, 'user' => $this->userSubscribedToCommentCreatedMail, 'post' => $post]; // Mock comment object
+    $post = (object) ['id' => 1, 'title' => 'Test Post']; // Mock post object
+    $comment = (object) ['id' => 1, 'user' => $this->userSubscribedToCommentCreatedMail, 'post' => $post]; // Mock comment object
 
     // User subscribed via mail
     $this->userSubscribedToCommentCreatedMail->notify(new NotifyCommentCreated($comment));
@@ -63,17 +62,17 @@ it('dispatches notification to user subscribed to the type and a channel', funct
 });
 
 it('does not dispatch notification if user is not subscribed to the type on any channel', function () {
-    $post = (object)['id' => 1, 'title' => 'Test Post'];
-    $comment = (object)['id' => 1, 'user' => $this->userNotSubscribed, 'post' => $post];
+    $post = (object) ['id' => 1, 'title' => 'Test Post'];
+    $comment = (object) ['id' => 1, 'user' => $this->userNotSubscribed, 'post' => $post];
 
     $this->userNotSubscribed->notify(new NotifyCommentCreated($comment));
     Notification::assertNotSentTo($this->userNotSubscribed, NotifyCommentCreated::class);
 });
 
 it('dispatches correct notification types to respective subscribed users', function () {
-    $post = (object)['id' => 1, 'title' => 'Test Post'];
-    $comment = (object)['id' => 1, 'user_id' => 999, 'post' => $post]; // Mock comment object for NotifyCommentCreated
-    $reply = (object)['id' => 2, 'user_id' => 998, 'parent_comment_user_id' => $this->userSubscribedToCommentReplyMail->id ]; // Mock reply object for NotifyCommentReply
+    $post = (object) ['id' => 1, 'title' => 'Test Post'];
+    $comment = (object) ['id' => 1, 'user_id' => 999, 'post' => $post]; // Mock comment object for NotifyCommentCreated
+    $reply = (object) ['id' => 2, 'user_id' => 998, 'parent_comment_user_id' => $this->userSubscribedToCommentReplyMail->id]; // Mock reply object for NotifyCommentReply
 
     // Dispatch CommentCreated notification
     $this->userSubscribedToCommentCreatedMail->notify(new NotifyCommentCreated($comment));
@@ -85,11 +84,10 @@ it('dispatches correct notification types to respective subscribed users', funct
     // Dispatch CommentReply notification
     $this->userSubscribedToCommentReplyMail->notify(new NotifyCommentReply($reply));
     $this->userSubscribedToCommentCreatedMail->notify(new NotifyCommentReply($reply)); // This user is NOT subscribed to comment:replied
-    
+
     Notification::assertSentTo($this->userSubscribedToCommentReplyMail, NotifyCommentReply::class);
     Notification::assertNotSentTo($this->userSubscribedToCommentCreatedMail, NotifyCommentReply::class);
 });
-
 
 it('does not dispatch notification if notification type is not in config', function () {
     // Temporarily remove a notification type from config for this test
@@ -98,8 +96,8 @@ it('does not dispatch notification if notification type is not in config', funct
     unset($modifiedConfig['comment:created']);
     Config::set('notification-subscriptions.notifications', $modifiedConfig);
 
-    $post = (object)['id' => 1, 'title' => 'Test Post'];
-    $comment = (object)['id' => 1, 'user' => $this->userSubscribedToCommentCreatedMail, 'post' => $post];
+    $post = (object) ['id' => 1, 'title' => 'Test Post'];
+    $comment = (object) ['id' => 1, 'user' => $this->userSubscribedToCommentCreatedMail, 'post' => $post];
 
     $this->userSubscribedToCommentCreatedMail->notify(new NotifyCommentCreated($comment));
     Notification::assertNotSentTo($this->userSubscribedToCommentCreatedMail, NotifyCommentCreated::class);

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Humweb\Notifications\Facades\NotificationSubscriptions as NotificationSubscriptionsManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use Humweb\Notifications\Facades\NotificationSubscriptions as NotificationSubscriptionsManager;
 
 class NotificationSubscriptionController extends Controller
 {
@@ -22,7 +22,7 @@ class NotificationSubscriptionController extends Controller
 
         $subscriptionsData = collect($definedNotificationTypes)->map(function ($typeDetails, $type) use ($user) {
             $configuredChannels = $typeDetails['channels'] ?? [];
-            
+
             $channels = collect($configuredChannels)->map(function ($channelConfig) use ($user, $type) {
                 return [
                     'name' => $channelConfig['name'],
@@ -47,7 +47,6 @@ class NotificationSubscriptionController extends Controller
     /**
      * Update the user's notification subscription status for a given type.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
@@ -69,7 +68,7 @@ class NotificationSubscriptionController extends Controller
         $typeConfig = $definedNotificationTypes[$type] ?? null;
         $allowedChannels = collect($typeConfig['channels'] ?? [])->pluck('name')->all();
 
-        if (!$typeConfig || !in_array($channelName, $allowedChannels)) {
+        if (! $typeConfig || ! in_array($channelName, $allowedChannels)) {
             return back()->withErrors(['channel' => 'Invalid channel for the notification type.'])->withInput();
         }
 
@@ -81,4 +80,4 @@ class NotificationSubscriptionController extends Controller
 
         return back()->with('success', 'Notification settings updated.');
     }
-} 
+}

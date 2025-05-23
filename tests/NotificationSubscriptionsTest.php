@@ -21,7 +21,7 @@ beforeEach(function () {
             'channels' => [
                 ['name' => 'mail', 'label' => 'Email'],
                 ['name' => 'database', 'label' => 'Site Notification'],
-            ]
+            ],
         ],
         'comment:replied' => [
             'label' => 'Comment replies',
@@ -29,15 +29,15 @@ beforeEach(function () {
             'class' => NotifyCommentReply::class,
             'channels' => [
                 ['name' => 'mail', 'label' => 'Email'],
-            ]
+            ],
         ],
         'event:without_class' => [
             'label' => 'Event without class',
             'description' => 'An event that does not have a specific notification class defined in config.',
             'channels' => [
                 ['name' => 'mail', 'label' => 'Email'],
-            ]
-        ]
+            ],
+        ],
     ]);
 });
 
@@ -63,7 +63,7 @@ it('can get subscribable notification types list with channels', function () {
 });
 
 it('can get notification class for a type', function () {
-    $manager = new \Humweb\Notifications\NotificationSubscriptions();
+    $manager = new \Humweb\Notifications\NotificationSubscriptions;
     $classViaMethod = $manager->getNotificationClass('comment:created');
     expect($classViaMethod)->toEqual(NotifyCommentCreated::class);
 });
