@@ -25,7 +25,7 @@ class NotificationSubscriptionsServiceProvider extends PackageServiceProvider
         parent::register();
 
         $this->app->singleton('notification.subscriptions', function ($app) {
-            return new NotificationSubscriptions();
+            return new NotificationSubscriptions;
         });
     }
 }

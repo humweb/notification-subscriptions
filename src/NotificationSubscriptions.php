@@ -6,8 +6,6 @@ class NotificationSubscriptions
 {
     /**
      * Get the configured user model class name.
-     *
-     * @return string|null
      */
     public function getUserModel(): ?string
     {
@@ -16,8 +14,6 @@ class NotificationSubscriptions
 
     /**
      * Get all defined subscribable notification types from the configuration.
-     *
-     * @return array
      */
     public function getSubscribableNotificationTypes(): array
     {
@@ -26,41 +22,31 @@ class NotificationSubscriptions
 
     /**
      * Get the display label for a given notification type.
-     *
-     * @param  string  $type
-     * @param  string|null  $default
-     * @return string|null
      */
-    public function getNotificationLabel(string $type, string $default = null): ?string
+    public function getNotificationLabel(string $type, ?string $default = null): ?string
     {
         return config("notification-subscriptions.notifications.{$type}.label", $default);
     }
 
     /**
      * Get the description for a given notification type.
-     *
-     * @param  string  $type
-     * @param  string|null  $default
-     * @return string|null
      */
-    public function getNotificationDescription(string $type, string $default = null): ?string
+    public function getNotificationDescription(string $type, ?string $default = null): ?string
     {
         return config("notification-subscriptions.notifications.{$type}.description", $default);
     }
 
     /**
      * Get the associated Notification class for a given notification type.
-     *
-     * @param  string  $type
-     * @return string|null
      */
     public function getNotificationClass(string $type): ?string
     {
         $notificationTypeConfig = config("notification-subscriptions.notifications.{$type}", null);
-//        dd($notificationTypeConfig,$type, config("notification-subscriptions.notifications.comment.created"));
+        //        dd($notificationTypeConfig,$type, config("notification-subscriptions.notifications.comment.created"));
         if (is_array($notificationTypeConfig)) {
             return $notificationTypeConfig['class'] ?? null;
         }
+
         return null;
     }
 
@@ -68,7 +54,7 @@ class NotificationSubscriptions
      * Generates a user-friendly label for a user model instance.
      * It tries to find 'email', 'name', 'last_name', 'first_name', or 'id' in that order.
      *
-     * @param $user The user model instance.
+     * @param  $user  The user model instance.
      * @return string|int|null The most suitable label found, or null.
      */
     public function getUserLabel($user): string|int|null

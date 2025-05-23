@@ -10,10 +10,6 @@ trait Subscribable
 {
     /**
      * Subscribe the user to a given notification type on a specific channel.
-     *
-     * @param  string  $type
-     * @param  string  $channel
-     * @return NotificationSubscription|null
      */
     public function subscribe(string $type, string $channel): ?NotificationSubscription
     {
@@ -29,10 +25,6 @@ trait Subscribable
 
     /**
      * Unsubscribe the user from a given notification type on a specific channel.
-     *
-     * @param  string  $type
-     * @param  string  $channel
-     * @return bool
      */
     public function unsubscribe(string $type, string $channel): bool
     {
@@ -41,21 +33,14 @@ trait Subscribable
 
     /**
      * Check if the user is subscribed to a given notification type on a specific channel.
-     *
-     * @param  string  $type
-     * @param  string  $channel
-     * @return bool
      */
     public function isSubscribedTo(string $type, string $channel): bool
     {
         return $this->subscriptions()->where('type', $type)->where('channel', $channel)->exists();
     }
-    
+
     /**
      * Get all channel names the user is subscribed to for a given notification type.
-     *
-     * @param  string  $type
-     * @return \Illuminate\Support\Collection
      */
     public function getSubscribedChannels(string $type): Collection
     {
@@ -64,9 +49,6 @@ trait Subscribable
 
     /**
      * Unsubscribe the user from all channels for a given notification type.
-     *
-     * @param  string  $type
-     * @return bool
      */
     public function unsubscribeFromType(string $type): bool
     {
@@ -75,8 +57,6 @@ trait Subscribable
 
     /**
      * Unsubscribe the user from all notifications (all types and all channels).
-     *
-     * @return bool
      */
     public function unsubscribeFromAll(): bool
     {
@@ -85,22 +65,19 @@ trait Subscribable
 
     /**
      * Get all notification subscriptions for the user.
-     *
-     * @return HasMany
      */
     public function subscriptions(): HasMany
     {
         $subscriptionModel = $this->getNotificationSubscriptionModel();
+
         return $this->hasMany($subscriptionModel, 'user_id');
     }
 
     /**
      * Get the model class name that is used for notification subscriptions.
-     *
-     * @return string
      */
     public function getNotificationSubscriptionModel(): string
     {
         return config('notification-subscriptions.subscription_model', NotificationSubscription::class);
     }
-} 
+}

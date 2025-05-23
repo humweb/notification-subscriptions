@@ -7,9 +7,6 @@ use Humweb\Notifications\Models\NotificationSubscription;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/**
- *
- */
 trait HasNotificationSubscriptions
 {
     public function notificationSubscriptions(): HasMany
@@ -27,7 +24,6 @@ trait HasNotificationSubscriptions
     }
 
     /**
-     * @param $type
      * @return NotificationSubscription
      */
     public function subscribe($type): Model

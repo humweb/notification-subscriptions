@@ -10,15 +10,12 @@ use Illuminate\Notifications\Notification;
 
 class NotifyCommentCreated extends Notification implements SubscribableNotification
 {
-    use Queueable;
-    use DispatchesNotifications;
     use ChecksSubscription;
+    use DispatchesNotifications;
+    use Queueable;
 
     public $comment;
 
-    /**
-     * @param $comment
-     */
     public function __construct($comment)
     {
         $this->comment = $comment;
