@@ -11,28 +11,33 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     config([
-        'subscribable.user_model' => User::class,
-        'subscribable.notifications' => [
-            'comment.created' => [
+        'notification-subscriptions.user_model' => User::class,
+        'notification-subscriptions.notifications' => [
+            'comment:created' => [
                 'label' => 'Comments',
                 'description' => 'Get notified everytime a user comments on one of your posts.',
                 'class' => NotifyCommentCreated::class,
             ],
-            'comment.replied' => [
+            'comment:replied' => [
                 'label' => 'Comment replies',
                 'description' => 'Get notified everytime a user replies to your comments.',
                 'class' => NotifyCommentReply::class,
             ],
+            'comment:filtered' => [
+                'label' => 'Filtered Comments',
+                'description' => 'Get notified for filtered comments.',
+                'class' => NotifyFilteredComment::class,
+            ]
         ],
     ]);
 
     $this->user = User::factory()->create();
     $this->user2 = User::factory()->create();
 
-    $this->user->subscribe('comment.created');
-    $this->user->subscribe('comment.replied');
+    $this->user->subscribe('comment:created');
+    $this->user->subscribe('comment:replied');
 
-    $this->user2->subscribe('comment.created');
+    $this->user2->subscribe('comment:created');
 });
 
 it('send notifications to subscribers', function () {
@@ -70,8 +75,8 @@ it('can filter subscribers for certain notifications', function () {
         'comment' => 'Hello World',
     ];
 
-    $this->user->subscribe('comment.filtered');
-    $this->user2->subscribe('comment.filtered');
+    $this->user->subscribe('comment:filtered');
+    $this->user2->subscribe('comment:filtered');
 
     NotifyFilteredComment::dispatch($comment);
 

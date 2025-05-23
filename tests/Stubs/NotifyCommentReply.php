@@ -24,7 +24,7 @@ class NotifyCommentReply extends Notification implements SubscribableNotificatio
 
     public static function subscriptionType(): string
     {
-        return 'comment.replied';
+        return 'comment:replied';
     }
 
     /**

@@ -5,68 +5,86 @@ namespace Humweb\Notifications;
 class NotificationSubscriptions
 {
     /**
-     * @param          $user
-     * @param  string  $type
+     * Get the configured user model class name.
      *
-     * @return mixed
+     * @return string|null
      */
-    public function subscribe($user, string $type)
+    public function getUserModel(): ?string
     {
-        return $user->subscribe($type);
+        return config('notification-subscriptions.user_model');
     }
 
     /**
-     * @param          $user
-     * @param  string  $type
+     * Get all defined subscribable notification types from the configuration.
      *
-     * @return mixed
-     */
-    public function unsubscribe($user, string $type)
-    {
-        return $user->unsubscribe($type);
-    }
-
-    /**
-     * @param $user
-     *
-     * @return mixed
-     */
-    public function unsubscribeFromAll($user)
-    {
-        return $user->unsubscribeFromAll();
-    }
-
-    /**
-     * @return string
-     */
-    public function getUserModel()
-    {
-        return config('subscribable.user_model');
-    }
-
-    /**
      * @return array
      */
-    public function getSubscribables()
+    public function getSubscribableNotificationTypes(): array
     {
-        return config('subscribable.notifications');
+        return config('notification-subscriptions.notifications', []);
     }
 
     /**
-     * @param $user
+     * Get the display label for a given notification type.
      *
-     * @return string|int
+     * @param  string  $type
+     * @param  string|null  $default
+     * @return string|null
      */
-    public function getUserLabel($user)
+    public function getNotificationLabel(string $type, string $default = null): ?string
     {
-        return collect([
-            data_get($user, 'email'),
-            data_get($user, 'name'),
-            data_get($user, 'last_name'),
-            data_get($user, 'first_name'),
-            data_get($user, 'id'),
-        ])
-            ->filter()
-            ->first();
+        return config("notification-subscriptions.notifications.{$type}.label", $default);
+    }
+
+    /**
+     * Get the description for a given notification type.
+     *
+     * @param  string  $type
+     * @param  string|null  $default
+     * @return string|null
+     */
+    public function getNotificationDescription(string $type, string $default = null): ?string
+    {
+        return config("notification-subscriptions.notifications.{$type}.description", $default);
+    }
+
+    /**
+     * Get the associated Notification class for a given notification type.
+     *
+     * @param  string  $type
+     * @return string|null
+     */
+    public function getNotificationClass(string $type): ?string
+    {
+        $notificationTypeConfig = config("notification-subscriptions.notifications.{$type}", null);
+//        dd($notificationTypeConfig,$type, config("notification-subscriptions.notifications.comment.created"));
+        if (is_array($notificationTypeConfig)) {
+            return $notificationTypeConfig['class'] ?? null;
+        }
+        return null;
+    }
+
+    /**
+     * Generates a user-friendly label for a user model instance.
+     * It tries to find 'email', 'name', 'last_name', 'first_name', or 'id' in that order.
+     *
+     * @param $user The user model instance.
+     * @return string|int|null The most suitable label found, or null.
+     */
+    public function getUserLabel($user): string|int|null
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $possibleAttributes = ['email', 'name', 'last_name', 'first_name', 'id'];
+
+        foreach ($possibleAttributes as $attribute) {
+            if (! empty($user->{$attribute})) {
+                return $user->{$attribute};
+            }
+        }
+
+        return null;
     }
 }

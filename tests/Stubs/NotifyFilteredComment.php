@@ -24,7 +24,7 @@ class NotifyFilteredComment extends Notification implements SubscribableNotifica
 
     public static function subscriptionType(): string
     {
-        return 'comment.filtered';
+        return 'comment:filtered';
     }
 
     public function filter($query)

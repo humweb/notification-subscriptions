@@ -25,7 +25,7 @@ class NotifyCommentCreated extends Notification implements SubscribableNotificat
 
     public static function subscriptionType(): string
     {
-        return 'comment.created';
+        return 'comment:created';
     }
 
     /**

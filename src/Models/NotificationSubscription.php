@@ -6,6 +6,7 @@ use Humweb\Notifications\Facades\NotificationSubscriptions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property int    $user_id
@@ -16,11 +17,28 @@ class NotificationSubscription extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'user_id',
+        'type',
+    ];
 
-    public function user()
+    /**
+     * Get the table associated with the model.
+     *
+     * @return string
+     */
+    public function getTable()
     {
-        return $this->belongsTo(NotificationSubscriptions::getUserModel());
+        return config('notification-subscriptions.table_name', 'notification_subscriptions');
+    }
+
+    /**
+     * Get the user that owns the subscription.
+     */
+    public function user(): BelongsTo
+    {
+        $userModel = config('notification-subscriptions.user_model', config('auth.providers.users.model', \App\Models\User::class));
+        return $this->belongsTo($userModel, 'user_id');
     }
 
     /**

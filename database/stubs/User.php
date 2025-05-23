@@ -2,14 +2,14 @@
 
 namespace Humweb\Notifications\Database\Stubs;
 
-use Humweb\Notifications\Traits\HasNotificationSubscriptions;
+use Humweb\Notifications\Traits\Subscribable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasNotificationSubscriptions;
+    use HasFactory, Notifiable, Subscribable;
 
     /**
      * The attributes that are mass assignable.
@@ -20,4 +20,9 @@ class User extends Authenticatable
         'email',
         'name',
     ];
+
+    protected static function newFactory()
+    {
+        return \Humweb\Notifications\Database\Factories\UserFactory::new();
+    }
 }
