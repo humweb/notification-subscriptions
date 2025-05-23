@@ -9,15 +9,11 @@ use Illuminate\Notifications\Notification;
 
 class NotifyCommentCreated extends Notification implements SubscribableNotification
 {
-    use Queueable;
     use DispatchesNotifications;
-
+    use Queueable;
 
     public $comment;
 
-    /**
-     * @param $comment
-     */
     public function __construct($comment)
     {
         $this->comment = $comment;
@@ -32,7 +28,6 @@ class NotifyCommentCreated extends Notification implements SubscribableNotificat
      * Get the notification's delivery channels.
      *
      * @param  mixed  $notifiable
-     *
      * @return array
      */
     public function via($notifiable)

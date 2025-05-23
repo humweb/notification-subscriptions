@@ -55,7 +55,6 @@ it('send notifications to subscribers', function () {
         }
     );
 
-
     NotifyCommentReply::dispatch($comment);
     Notification::assertNotSentTo($this->user2, NotifyCommentReply::class);
     Notification::assertSentTo($this->user, NotifyCommentReply::class);

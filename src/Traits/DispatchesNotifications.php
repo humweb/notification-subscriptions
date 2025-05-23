@@ -8,8 +8,6 @@ use Illuminate\Support\Facades\Notification;
 trait DispatchesNotifications
 {
     /**
-     * @param ...$arguments
-     *
      * @return void
      */
     public static function dispatch(...$arguments)

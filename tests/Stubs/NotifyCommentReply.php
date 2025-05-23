@@ -9,14 +9,11 @@ use Illuminate\Notifications\Notification;
 
 class NotifyCommentReply extends Notification implements SubscribableNotification
 {
-    use Queueable;
     use DispatchesNotifications;
+    use Queueable;
 
     public $reply;
 
-    /**
-     * @param $reply
-     */
     public function __construct($reply)
     {
         $this->reply = $reply;
@@ -31,7 +28,6 @@ class NotifyCommentReply extends Notification implements SubscribableNotificatio
      * Get the notification's delivery channels.
      *
      * @param  mixed  $notifiable
-     *
      * @return array
      */
     public function via($notifiable)

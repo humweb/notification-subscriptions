@@ -5,9 +5,6 @@ namespace Humweb\Notifications;
 class NotificationSubscriptions
 {
     /**
-     * @param          $user
-     * @param  string  $type
-     *
      * @return mixed
      */
     public function subscribe($user, string $type)
@@ -16,9 +13,6 @@ class NotificationSubscriptions
     }
 
     /**
-     * @param          $user
-     * @param  string  $type
-     *
      * @return mixed
      */
     public function unsubscribe($user, string $type)
@@ -27,8 +21,6 @@ class NotificationSubscriptions
     }
 
     /**
-     * @param $user
-     *
      * @return mixed
      */
     public function unsubscribeFromAll($user)
@@ -53,8 +45,6 @@ class NotificationSubscriptions
     }
 
     /**
-     * @param $user
-     *
      * @return string|int
      */
     public function getUserLabel($user)

@@ -44,7 +44,6 @@ it('can get user subscriptions', function () {
     expect($subscriptions->contains('comment.replied'))->toBeTrue();
 });
 
-
 it('can unsubscribe from notifications', function () {
     expect($this->user->notificationSubscriptionExists('comment.created'))->toBeTrue();
     expect($this->user->notificationSubscriptionExists('comment.replied'))->toBeTrue();
@@ -65,7 +64,6 @@ it('can unsubscribe from all notifications', function () {
     expect($this->user->notificationSubscriptionExists('comment.replied'))->toBeFalse();
     expect($this->user->notificationSubscriptionExists('comment.created'))->toBeFalse();
 });
-
 
 it('can get subscription user', function () {
     expect($this->notification->user->id)->toEqual($this->user->id);
