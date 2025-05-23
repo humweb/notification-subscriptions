@@ -18,15 +18,25 @@ beforeEach(function () {
             'label' => 'Comments',
             'description' => 'Get notified everytime a user comments on one of your posts.',
             'class' => NotifyCommentCreated::class,
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+                ['name' => 'database', 'label' => 'Site Notification'],
+            ]
         ],
         'comment:replied' => [
             'label' => 'Comment replies',
             'description' => 'Get notified everytime a user replies to your comments.',
             'class' => NotifyCommentReply::class,
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+            ]
         ],
         'event:without_class' => [
             'label' => 'Event without class',
             'description' => 'An event that does not have a specific notification class defined in config.',
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+            ]
         ]
     ]);
 });
@@ -39,32 +49,28 @@ it('can get user label', function () {
     expect(NotificationSubscriptions::getUserLabel($this->user))->toEqual($this->user->email);
 });
 
-it('can get subscribable notification types list', function () {
+it('can get subscribable notification types list with channels', function () {
     $subscribableTypes = NotificationSubscriptions::getSubscribableNotificationTypes();
     expect($subscribableTypes)->toBeArray()
         ->toHaveKey('comment:created')
-        ->toHaveKey('comment:replied')
-        ->and($subscribableTypes['comment:created']['label'])->toEqual('Comments')
-        ->and($subscribableTypes['comment:created']['class'])->toEqual(NotifyCommentCreated::class);
+        ->toHaveKey('comment:replied');
 
+    $commentCreatedConfig = $subscribableTypes['comment:created'];
+    expect($commentCreatedConfig['label'])->toEqual('Comments');
+    expect($commentCreatedConfig['class'])->toEqual(NotifyCommentCreated::class);
+    expect($commentCreatedConfig['channels'])->toBeArray()->toHaveCount(2);
+    expect($commentCreatedConfig['channels'][0]['name'])->toEqual('mail');
 });
 
 it('can get notification class for a type', function () {
-    // @todo: This test mysteriously fails. Config::get("notification-subscriptions.notifications.comment:created.class") returns null
-    // when called from within getNotificationClass() in this specific test's execution context,
-    // even though the config is set in beforeEach and another test ('it can get subscribable notification types list')
-    // successfully reads the same config key when accessing the parent array.
-    // Direct instantiation or facade use makes no difference. Skipping for now.
-//    $this->markTestSkipped('Investigate elusive config access issue in this specific test.');
-
-     $manager = new \Humweb\Notifications\NotificationSubscriptions();
-     $classViaMethod = $manager->getNotificationClass('comment:created');
-     expect($classViaMethod)->toEqual(NotifyCommentCreated::class);
+    $manager = new \Humweb\Notifications\NotificationSubscriptions();
+    $classViaMethod = $manager->getNotificationClass('comment:created');
+    expect($classViaMethod)->toEqual(NotifyCommentCreated::class);
 });
 
-it('returns null for notification class if not defined', function () {
+it('returns null for notification class if not defined for type', function () {
     $class = NotificationSubscriptions::getNotificationClass('event:without_class');
-    expect($class)->toBeNull();
+    expect($class)->toBeNull(); // Assuming 'class' key is optional and might not be present
 });
 
 it('returns null for notification class for a non-existent type', function () {

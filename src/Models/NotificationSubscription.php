@@ -20,6 +20,7 @@ class NotificationSubscription extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'channel',
     ];
 
     /**

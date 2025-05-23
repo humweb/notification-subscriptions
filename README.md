@@ -105,95 +105,90 @@ return [
 
 Once set up, you can manage user subscriptions easily:
 
-### Subscribing a User
+### Subscribing to a Notification Type and Channel
+
+To subscribe a user to a specific notification type and channel:
 
 ```php
-$user = User::find(1);
+$user->subscribe('news:updates', 'mail');
+$user->subscribe('product:offers', 'sms');
+```
 
-// Subscribe to a single notification type
-$user->subscribe('app:updates');
+If the user is already subscribed to that type and channel, this method will not create a duplicate entry.
 
-// The subscribe method returns the NotificationSubscription model instance or null if already subscribed
-$subscription = $user->subscribe('newsletter:marketing');
+### Unsubscribing from a Notification Type and Channel
 
-if ($subscription) {
-    // New subscription created
-} else {
-    // User was already subscribed to 'newsletter:marketing'
+To unsubscribe a user:
+
+```php
+$user->unsubscribe('news:updates', 'mail');
+```
+
+### Checking Subscription Status for a Type and Channel
+
+To check if a user is subscribed:
+
+```php
+if ($user->isSubscribedTo('news:updates', 'mail')) {
+    // User is subscribed to news updates via email
 }
 ```
 
-### Unsubscribing a User
+### Getting Subscribed Channels for a Type
+
+To get a collection of all channel names a user is subscribed to for a given notification type:
 
 ```php
-$user = User::find(1);
-
-// Unsubscribe from a single notification type
-$user->unsubscribe('app:updates');
-
-// The unsubscribe method returns true if successful, false otherwise.
+$subscribedChannels = $user->getSubscribedChannels('app:updates');
+// Returns collect(['mail', 'database']) if subscribed to both
 ```
 
-### Checking Subscription Status
+### Unsubscribing from All Channels for a Type
+
+To unsubscribe a user from all channels for a particular notification type (e.g., stop receiving 'app:updates' on any channel):
 
 ```php
-$user = User::find(1);
-
-if ($user->isSubscribedTo('newsletter:marketing')) {
-    // User is subscribed to marketing newsletters
-} else {
-    // User is not subscribed
-}
+$user->unsubscribeFromType('app:updates');
 ```
 
 ### Unsubscribing from All Notifications
 
+To unsubscribe a user from all notification types and all channels:
+
 ```php
-$user = User::find(1);
 $user->unsubscribeFromAll();
 ```
 
-### Retrieving User Subscriptions
+### Listing User's Subscriptions
 
-You can get all of a user's active subscriptions:
+To get all of a user's notification subscriptions (returns a collection of `NotificationSubscription` models):
 
 ```php
-$user = User::find(1);
-$subscriptions = $user->subscriptions; // Returns a Collection of NotificationSubscription models
+$subscriptions = $user->subscriptions; // Eloquent HasMany relation
 
 foreach ($subscriptions as $subscription) {
-    echo "User is subscribed to: " . $subscription->type;
+    echo "Type: " . $subscription->type . ", Channel: " . $subscription->channel;
 }
 ```
 
-### Listing Available Notification Types
+### Listing Available Notification Types & Channels
 
-You can use the `NotificationSubscriptions` facade or helper to get all defined notification types, which is useful for building a settings page for users.
+You can retrieve the configured notification types and their available channels from the facade:
 
 ```php
-use Humweb\Notifications\Facades\NotificationSubscriptions; // If you set up a Facade
-// Or resolve from the service container:
-// $notificationManager = app('notification.subscriptions');
+use Humweb\Notifications\Facades\NotificationSubscriptions;
 
-$allTypes = NotificationSubscriptions::getSubscribableNotificationTypes();
-/*
-Output might be:
-[
-    'app:updates' => [
-        'label' => 'Application Updates',
-        'description' => 'Receive notifications about new features and important updates to the application.',
-    ],
-    'newsletter:marketing' => [
-        'label' => 'Marketing Newsletter',
-        'description' => 'Get occasional updates about our products, special offers, and news.',
-    ],
-]
-*/
+$types = NotificationSubscriptions::getSubscribableNotificationTypes();
 
-foreach ($allTypes as $type => $details) {
-    echo "Type: {$type}, Label: {$details['label']}, Description: {$details['description']}";
-    // You can then check if the current user is subscribed to $type
-    // if (auth()->user()->isSubscribedTo($type)) { ... }
+foreach ($types as $typeKey => $typeDetails) {
+    echo "Type: " . $typeDetails['label'];
+    echo "Description: " . $typeDetails['description'];
+    if (isset($typeDetails['channels'])) {
+        echo "Available Channels:";
+        foreach ($typeDetails['channels'] as $channel) {
+            echo $channel['label'] . " (" . $channel['name'] . ")";
+        }
+    }
 }
 ```
 
@@ -256,3 +251,104 @@ Please review [our security policy](../../security/policy) on how to report secu
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+
+## Frontend Management (Optional - Example with Inertia/Vue)
+
+This package provides the backend logic. If you want a UI for users to manage their subscriptions, you'll need to build it in your application. Here's a conceptual example using Inertia.js and Vue.
+
+**1. Controller Methods:**
+
+Create a controller (e.g., `NotificationSubscriptionController`) to handle showing and updating settings:
+
+```php
+// app/Http/Controllers/NotificationSubscriptionController.php
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Humweb\Notifications\Facades\NotificationSubscriptions as NotificationSubscriptionsManager;
+use Illuminate\Validation\Rule;
+
+class NotificationSubscriptionController extends Controller
+{
+    public function index()
+    {
+        $user = Auth::user();
+        $definedTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
+
+        $subscriptionsData = collect($definedTypes)->map(function ($typeDetails, $typeKey) use ($user) {
+            $configuredChannels = $typeDetails['channels'] ?? [];
+
+            $channels = collect($configuredChannels)->map(function ($channelConfig) use ($user, $typeKey) {
+                return [
+                    'name' => $channelConfig['name'],
+                    'label' => $channelConfig['label'],
+                    'subscribed' => $user ? $user->isSubscribedTo($typeKey, $channelConfig['name']) : false,
+                ];
+            })->all();
+
+            return [
+                'type' => $typeKey,
+                'label' => $typeDetails['label'] ?? $typeKey,
+                'description' => $typeDetails['description'] ?? '',
+                'channels' => $channels,
+            ];
+        })->values()->all();
+
+        return Inertia::render('Profile/NotificationSettings', [
+            'subscriptionsData' => $subscriptionsData,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+        $definedTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
+
+        $request->validate([
+            'type' => ['required', 'string', Rule::in(array_keys($definedTypes))],
+            'channel' => ['required', 'string'], // Add validation for allowed channels for type
+            'subscribed' => ['required', 'boolean'],
+        ]);
+
+        $type = $request->input('type');
+        $channelName = $request->input('channel');
+        $subscribed = $request->input('subscribed');
+
+        // Validate channel is valid for the type
+        $typeConfig = $definedTypes[$type] ?? null;
+        if (!$typeConfig || !collect($typeConfig['channels'] ?? [])->contains('name', $channelName)) {
+            return back()->withErrors(['channel' => 'Invalid channel for the notification type.'])->withInput();
+        }
+
+        if ($subscribed) {
+            $user->subscribe($type, $channelName);
+        } else {
+            $user->unsubscribe($type, $channelName);
+        }
+
+        return back()->with('success', 'Notification settings updated.');
+    }
+}
+```
+
+**2. Routes:**
+
+```php
+// routes/web.php
+use App\Http\Controllers\NotificationSubscriptionController;
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile/notification-settings', [NotificationSubscriptionController::class, 'index'])
+        ->name('profile.notification-settings.index');
+    Route::post('/profile/notification-settings', [NotificationSubscriptionController::class, 'store'])
+        ->name('profile.notification-settings.store');
+});
+```
+
+**3. Vue Component (e.g., `NotificationSettings.vue`):**
+
+(The Vue component provided in the prompt `resources/js/Pages/Profile/NotificationSettings.vue` is already up-to-date with channel logic, so it can be referenced here).
+
+Make sure your Vue component correctly iterates through `notificationType.channels` and submits `type`, `channel.name`, and the new `subscribed` state.

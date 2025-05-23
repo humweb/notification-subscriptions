@@ -8,22 +8,27 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('notification_subscriptions', function (Blueprint $table) {
-              $table->id();
-              $table->string('type');
-              $table->unsignedInteger('user_id')->index();
-              $table->timestamps();
-              $table->unique(['type', 'user_id']);
+        $tableName = config('notification-subscriptions.table_name', 'notification_subscriptions');
+        Schema::create($tableName, function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id'); // Changed to unsignedBigInteger for consistency with Laravel 8+ user id
+            $table->string('type');
+            $table->string('channel'); // Added channel column
+            $table->timestamps();
+
+            $table->index('user_id');
+            $table->unique(['user_id', 'type', 'channel']); // Updated unique constraint
         });
     }
 
-       /**
-         * Reverse the migrations.
-         *
-         * @return void
-         */
-        public function down()
-        {
-            Schema::dropIfExists('notification_subscriptions');
-        }
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $tableName = config('notification-subscriptions.table_name', 'notification_subscriptions');
+        Schema::dropIfExists($tableName);
+    }
 };

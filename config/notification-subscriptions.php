@@ -61,18 +61,58 @@ return [
             'label' => 'Application Updates',
             'description' => 'Receive notifications about new features and important updates to the application.',
             // 'class' => App\Notifications\AppUpdatesNotification::class, // Example
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+                ['name' => 'database', 'label' => 'Site Notification'],
+            ]
         ],
         'newsletter:marketing' => [
             'label' => 'Marketing Newsletter',
             'description' => 'Get occasional updates about our products, special offers, and news.',
             // 'class' => App\Notifications\MarketingNewsletterNotification::class, // Example
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+            ]
         ],
-        /*
         'comment:created' => [
             'label'       => 'New Comments on Your Posts',
             'description' => 'Get notified every time a user comments on one of your posts.',
-            'class'       => App\Notifications\CommentCreatedNotification::class, 
+            'class'       => '\Humweb\Notifications\Tests\Stubs\NotifyCommentCreated',
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+                ['name' => 'database', 'label' => 'Site Notification'],
+            ]
         ],
-        */
+        'comment:replied' => [
+            'label' => 'Comment Replies',
+            'description' => 'Get notified when someone replies to your comments.',
+            'class' => '\Humweb\Notifications\Tests\Stubs\NotifyCommentReply',
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+            ]
+        ],
+        'comment:filtered' => [
+            'label' => 'Filtered Comments',
+            'description' => 'Get notified for filtered comments.',
+            'class' => '\Humweb\Notifications\Tests\Stubs\NotifyFilteredComment',
+            'channels' => [
+                ['name' => 'database', 'label' => 'Site Notification'],
+            ]
+        ],
+        'event:new' => [
+            'label' => 'New Events',
+            'description' => 'Get notified about new events.',
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+                ['name' => 'sms', 'label' => 'SMS Text Message'],
+            ]
+        ],
+        'event:without_class' => [
+            'label' => 'Event without class',
+            'description' => 'An event that does not have a specific notification class defined in config.',
+            'channels' => [
+                ['name' => 'mail', 'label' => 'Email'],
+            ]
+        ]
     ],
 ];

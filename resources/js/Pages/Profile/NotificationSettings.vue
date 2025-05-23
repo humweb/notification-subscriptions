@@ -15,7 +15,7 @@
                                 Manage Your Notification Preferences
                             </h3>
                             <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                Choose which communications you'd like to receive.
+                                Choose which communications and channels you'd like to receive.
                             </p>
                         </header>
 
@@ -23,25 +23,34 @@
                             {{ $page.props.flash.success }}
                         </div>
 
-                         <div v-if="hasErrors" class="mt-4 p-4 bg-red-100 dark:bg-red-700 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded">
+                        <div v-if="hasErrors" class="mt-4 p-4 bg-red-100 dark:bg-red-700 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded">
                             <p v-for="(error, key) in $page.props.errors" :key="key">{{ error }}</p>
                         </div>
 
-                        <div class="mt-6 space-y-6">
-                            <div v-for="subscription in subscriptions" :key="subscription.type" class="flex items-start">
-                                <div class="flex items-center h-5">
-                                    <input 
-                                        :id="subscription.type"
-                                        :name="subscription.type"
-                                        type="checkbox"
-                                        :checked="subscription.subscribed"
-                                        @change="toggleSubscription(subscription)"
-                                        class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-indigo-600 rounded"
-                                    />
-                                </div>
-                                <div class="ml-3 text-sm">
-                                    <label :for="subscription.type" class="font-medium text-gray-700 dark:text-gray-300">{{ subscription.label }}</label>
-                                    <p class="text-gray-500 dark:text-gray-400">{{ subscription.description }}</p>
+                        <div class="mt-6 space-y-8">
+                            <div v-for="(notificationType, typeIndex) in reactiveSubscriptionsData" :key="notificationType.type" class="border-t border-gray-200 dark:border-gray-700 pt-6 first:border-t-0 first:pt-0">
+                                <h4 class="text-md font-semibold text-gray-900 dark:text-gray-100">{{ notificationType.label }}</h4>
+                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400 mb-3">{{ notificationType.description }}</p>
+                                
+                                <div class="space-y-4">
+                                    <div v-for="(channel, channelIndex) in notificationType.channels" :key="channel.name" class="flex items-start pl-4">
+                                        <div class="flex items-center h-5">
+                                            <input 
+                                                :id="`${notificationType.type}-${channel.name}`"
+                                                :name="`${notificationType.type}-${channel.name}`"
+                                                type="checkbox"
+                                                :checked="channel.subscribed"
+                                                @change="toggleSubscription(notificationType.type, channel, typeIndex, channelIndex)"
+                                                class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-indigo-600 rounded"
+                                            />
+                                        </div>
+                                        <div class="ml-3 text-sm">
+                                            <label :for="`${notificationType.type}-${channel.name}`" class="font-medium text-gray-700 dark:text-gray-300">{{ channel.label }}</label>
+                                        </div>
+                                    </div>
+                                    <div v-if="!notificationType.channels || notificationType.channels.length === 0" class="pl-4 text-sm text-gray-500 dark:text-gray-400">
+                                        No specific channels configured for this notification type.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -53,7 +62,7 @@
 </template>
 
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'; // Adjust if your layout path is different
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
@@ -61,8 +70,8 @@ const props = defineProps({
     subscriptionsData: Array,
 });
 
-// Make subscriptions reactive so checkboxes update immediately
-const subscriptions = ref(props.subscriptionsData);
+// Use ref for local reactive state to allow immediate UI updates
+const reactiveSubscriptionsData = ref(JSON.parse(JSON.stringify(props.subscriptionsData))); // Deep copy to avoid prop mutation issues
 
 const page = usePage();
 
@@ -72,25 +81,30 @@ const hasErrors = computed(() => {
 
 const form = useForm({
     type: '',
+    channel: '',
     subscribed: false,
 });
 
-const toggleSubscription = (subscription) => {
-    form.type = subscription.type;
-    form.subscribed = !subscription.subscribed; // The new desired state
+const toggleSubscription = (notificationTypeString, channelObject, typeIndex, channelIndex) => {
+    form.type = notificationTypeString;
+    form.channel = channelObject.name;
+    form.subscribed = !channelObject.subscribed; // The new desired state
 
     form.post(route('profile.notification-settings.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            // Update the local state to reflect the change immediately
-            const index = subscriptions.value.findIndex(s => s.type === subscription.type);
-            if (index !== -1) {
-                subscriptions.value[index].subscribed = form.subscribed;
+            // Update the local reactive state to reflect the change immediately
+            if (reactiveSubscriptionsData.value[typeIndex] && reactiveSubscriptionsData.value[typeIndex].channels[channelIndex]) {
+                 reactiveSubscriptionsData.value[typeIndex].channels[channelIndex].subscribed = form.subscribed;
             }
         },
-        onError: () => {
-            // If there was an error, revert the checkbox (though controller should handle this by not changing db)
-            // For a better UX, you might want to reload props or handle errors more gracefully
+        onError: (errors) => {
+            // If there was an error from the backend, revert the checkbox state
+            // This is a simple revert; a more sophisticated UX might show the error near the checkbox
+            if (reactiveSubscriptionsData.value[typeIndex] && reactiveSubscriptionsData.value[typeIndex].channels[channelIndex]) {
+                 reactiveSubscriptionsData.value[typeIndex].channels[channelIndex].subscribed = !form.subscribed;
+            }
+             // Optionally, display errors more specifically or clear general flash errors if handled inline
         }
     });
 };

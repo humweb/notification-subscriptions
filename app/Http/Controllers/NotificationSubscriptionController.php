@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Humweb\Notifications\Facades\NotificationSubscriptions as NotificationSubscriptionsManager;
 
@@ -17,21 +18,29 @@ class NotificationSubscriptionController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $availableTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
+        $definedNotificationTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
 
-        $subscriptions = collect($availableTypes)->map(function ($details, $type) use ($user) {
+        $subscriptionsData = collect($definedNotificationTypes)->map(function ($typeDetails, $type) use ($user) {
+            $configuredChannels = $typeDetails['channels'] ?? [];
+            
+            $channels = collect($configuredChannels)->map(function ($channelConfig) use ($user, $type) {
+                return [
+                    'name' => $channelConfig['name'],
+                    'label' => $channelConfig['label'],
+                    'subscribed' => $user ? $user->isSubscribedTo($type, $channelConfig['name']) : false,
+                ];
+            })->all(); // Use all() to get a plain array
+
             return [
                 'type' => $type,
-                'label' => $details['label'] ?? $type,
-                'description' => $details['description'] ?? '',
-                'subscribed' => $user ? $user->isSubscribedTo($type) : false,
-                // We can also pass the configured notification class if needed by the frontend, though unlikely for this UI
-                // 'class' => $details['class'] ?? null,
+                'label' => $typeDetails['label'] ?? $type,
+                'description' => $typeDetails['description'] ?? '',
+                'channels' => $channels,
             ];
-        })->values(); // Ensure it's an array for Vue props
+        })->values()->all(); // Ensure it's a plain array for Vue props
 
         return Inertia::render('Profile/NotificationSettings', [
-            'subscriptionsData' => $subscriptions,
+            'subscriptionsData' => $subscriptionsData,
         ]);
     }
 
@@ -43,25 +52,31 @@ class NotificationSubscriptionController extends Controller
      */
     public function store(Request $request)
     {
+        $user = Auth::user();
+        $definedNotificationTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
+
         $request->validate([
-            'type' => ['required', 'string'],
+            'type' => ['required', 'string', Rule::in(array_keys($definedNotificationTypes))],
+            'channel' => ['required', 'string'],
             'subscribed' => ['required', 'boolean'],
         ]);
 
-        $user = Auth::user();
         $type = $request->input('type');
+        $channelName = $request->input('channel');
         $subscribed = $request->input('subscribed');
 
-        // Validate that the type is actually defined in the config
-        $definedTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
-        if (!array_key_exists($type, $definedTypes)) {
-            return back()->withErrors(['type' => 'Invalid notification type.']);
+        // Further validate that the channel is valid for the given type
+        $typeConfig = $definedNotificationTypes[$type] ?? null;
+        $allowedChannels = collect($typeConfig['channels'] ?? [])->pluck('name')->all();
+
+        if (!$typeConfig || !in_array($channelName, $allowedChannels)) {
+            return back()->withErrors(['channel' => 'Invalid channel for the notification type.'])->withInput();
         }
 
         if ($subscribed) {
-            $user->subscribe($type);
+            $user->subscribe($type, $channelName);
         } else {
-            $user->unsubscribe($type);
+            $user->unsubscribe($type, $channelName);
         }
 
         return back()->with('success', 'Notification settings updated.');

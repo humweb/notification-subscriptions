@@ -4,54 +4,83 @@ namespace Humweb\Notifications\Traits;
 
 use Humweb\Notifications\Models\NotificationSubscription;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 trait Subscribable
 {
     /**
-     * Subscribe the user to a given notification type.
+     * Subscribe the user to a given notification type on a specific channel.
      *
      * @param  string  $type
+     * @param  string  $channel
      * @return NotificationSubscription|null
      */
-    public function subscribe(string $type): ?NotificationSubscription
+    public function subscribe(string $type, string $channel): ?NotificationSubscription
     {
-        if ($this->isSubscribedTo($type)) {
-            return $this->subscriptions()->where('type', $type)->first();
+        if ($this->isSubscribedTo($type, $channel)) {
+            return $this->subscriptions()->where('type', $type)->where('channel', $channel)->first();
         }
 
-        return $this->subscriptions()->create(['type' => $type]);
+        return $this->subscriptions()->create([
+            'type' => $type,
+            'channel' => $channel,
+        ]);
     }
 
     /**
-     * Unsubscribe the user from a given notification type.
+     * Unsubscribe the user from a given notification type on a specific channel.
+     *
+     * @param  string  $type
+     * @param  string  $channel
+     * @return bool
+     */
+    public function unsubscribe(string $type, string $channel): bool
+    {
+        return (bool) $this->subscriptions()->where('type', $type)->where('channel', $channel)->delete();
+    }
+
+    /**
+     * Check if the user is subscribed to a given notification type on a specific channel.
+     *
+     * @param  string  $type
+     * @param  string  $channel
+     * @return bool
+     */
+    public function isSubscribedTo(string $type, string $channel): bool
+    {
+        return $this->subscriptions()->where('type', $type)->where('channel', $channel)->exists();
+    }
+    
+    /**
+     * Get all channel names the user is subscribed to for a given notification type.
+     *
+     * @param  string  $type
+     * @return \Illuminate\Support\Collection
+     */
+    public function getSubscribedChannels(string $type): Collection
+    {
+        return $this->subscriptions()->where('type', $type)->pluck('channel');
+    }
+
+    /**
+     * Unsubscribe the user from all channels for a given notification type.
      *
      * @param  string  $type
      * @return bool
      */
-    public function unsubscribe(string $type): bool
+    public function unsubscribeFromType(string $type): bool
     {
-        return $this->subscriptions()->where('type', $type)->delete();
+        return (bool) $this->subscriptions()->where('type', $type)->delete();
     }
 
     /**
-     * Check if the user is subscribed to a given notification type.
-     *
-     * @param  string  $type
-     * @return bool
-     */
-    public function isSubscribedTo(string $type): bool
-    {
-        return $this->subscriptions()->where('type', $type)->exists();
-    }
-
-    /**
-     * Unsubscribe the user from all notifications.
+     * Unsubscribe the user from all notifications (all types and all channels).
      *
      * @return bool
      */
     public function unsubscribeFromAll(): bool
     {
-        return $this->subscriptions()->delete();
+        return (bool) $this->subscriptions()->delete();
     }
 
     /**
@@ -62,11 +91,11 @@ trait Subscribable
     public function subscriptions(): HasMany
     {
         $subscriptionModel = $this->getNotificationSubscriptionModel();
-        return $this->hasMany($subscriptionModel, 'user_id'); // Assuming 'user_id' is the foreign key
+        return $this->hasMany($subscriptionModel, 'user_id');
     }
 
     /**
-     * Get the model that is used for notification subscriptions.
+     * Get the model class name that is used for notification subscriptions.
      *
      * @return string
      */
