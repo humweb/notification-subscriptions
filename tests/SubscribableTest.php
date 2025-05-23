@@ -97,7 +97,7 @@ it('can get subscribed channels for a type', function() {
     expect($subscribedChannels)->toBeInstanceOf(Collection::class)
         ->toHaveCount(2)
         ->toContain('mail', 'database')
-        ->notToContain('sms');
+        ->not->toContain('sms');
 
     $otherSubscribedChannels = $this->user->getSubscribedChannels('comment:replied');
     expect($otherSubscribedChannels)->toHaveCount(1)

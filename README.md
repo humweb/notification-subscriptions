@@ -196,6 +196,8 @@ foreach ($types as $typeKey => $typeDetails) {
 
 This package primarily manages the subscription preferences. When sending a Laravel Notification, you would first check if the user is subscribed to the relevant type before dispatching the notification.
 
+### Basic Approach
+
 ```php
 use App\Notifications\NewAppUpdate; // Your actual Laravel Notification class
 
@@ -207,6 +209,55 @@ if ($user->isSubscribedTo('app:updates')) {
     $user->notify(new NewAppUpdate($updateInfo));
 }
 ```
+
+### Using the ChecksSubscription Trait (Recommended)
+
+For a more integrated approach, this package provides the `ChecksSubscription` trait that automatically filters notification channels based on user subscriptions. This means you can use Laravel's standard `notify()` method and the trait will ensure notifications are only sent via channels the user has subscribed to.
+
+```php
+namespace App\Notifications;
+
+use Humweb\Notifications\Contracts\SubscribableNotification;
+use Humweb\Notifications\Traits\ChecksSubscription;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
+
+class CommentCreated extends Notification implements SubscribableNotification
+{
+    use Queueable, ChecksSubscription;
+
+    protected $comment;
+
+    public function __construct($comment)
+    {
+        $this->comment = $comment;
+    }
+
+    public static function subscriptionType(): string
+    {
+        return 'comment:created'; // Must match your config key
+    }
+
+    // The via() method is provided by ChecksSubscription trait
+    // It will automatically filter channels based on user's subscriptions
+}
+```
+
+With this approach:
+
+-   If a user is subscribed to 'comment:created' via 'mail' only, they'll receive emails
+-   If subscribed via both 'mail' and 'database', they'll receive both
+-   If not subscribed to any channel, they won't receive the notification at all
+-   If the notification type is not configured, no notification will be sent
+
+This makes your notifications automatically respect user preferences without additional checks:
+
+```php
+// Just use notify() as normal - subscriptions are checked automatically
+$user->notify(new CommentCreated($comment));
+```
+
+### Custom Subscription Type Method
 
 If your notification class itself needs to know its corresponding subscription type (perhaps for more complex scenarios or if you want to encapsulate the logic), you could define a static method on your Notification class:
 
