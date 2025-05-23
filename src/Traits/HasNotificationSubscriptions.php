@@ -4,6 +4,7 @@ namespace Humweb\Notifications\Traits;
 
 use Humweb\Notifications\Contracts\SubscribableNotification;
 use Humweb\Notifications\Models\NotificationSubscription;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -25,7 +26,11 @@ trait HasNotificationSubscriptions
             ->exists();
     }
 
-    public function subscribe($type)
+    /**
+     * @param $type
+     * @return NotificationSubscription
+     */
+    public function subscribe($type): Model
     {
         $type = $this->resolveNotificationType($type);
 

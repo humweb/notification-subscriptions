@@ -41,6 +41,6 @@ class NotifyFilteredComment extends Notification implements SubscribableNotifica
      */
     public function via($notifiable)
     {
-        return [];
+        return ['mail'];
     }
 }

@@ -74,6 +74,6 @@ it('can get user label', function () {
 
 it('can get subscribable notifications list', function () {
     $subscribables = NotificationSubscriptions::getSubscribables();
-    expect($subscribables['comment.created'])->toBeArray();
-    expect($subscribables['comment.replied'])->toBeArray();
+    expect($subscribables['comment.created'])->toBeArray()
+        ->and($subscribables['comment.replied'])->toBeArray();
 });

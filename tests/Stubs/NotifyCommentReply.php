@@ -36,6 +36,6 @@ class NotifyCommentReply extends Notification implements SubscribableNotificatio
      */
     public function via($notifiable)
     {
-        return [];
+        return ['mail'];
     }
 }

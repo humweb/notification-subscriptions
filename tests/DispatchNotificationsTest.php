@@ -44,6 +44,7 @@ it('send notifications to subscribers', function () {
     ];
 
     NotifyCommentCreated::dispatch($comment);
+
     Notification::assertSentTo(
         [$this->user, $this->user2],
         NotifyCommentCreated::class,
