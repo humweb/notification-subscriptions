@@ -2,6 +2,7 @@
 
 namespace Humweb\Notifications\Models;
 
+use Humweb\Notifications\Database\Stubs\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -38,7 +39,7 @@ class NotificationSubscription extends Model
      */
     public function user(): BelongsTo
     {
-        $userModel = config('notification-subscriptions.user_model', config('auth.providers.users.model', \App\Models\User::class));
+        $userModel = config('notification-subscriptions.user_model', config('auth.providers.users.model', User::class));
 
         return $this->belongsTo($userModel, 'user_id');
     }

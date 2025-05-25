@@ -18,7 +18,7 @@ return [
     | the user model from the default Laravel auth configuration.
     |
     */
-    'user_model' => App\Models\User::class, // Example: \App\Models\User::class
+    'user_model' => Humweb\Notifications\Database\Stubs\User::class, // Example: \App\Models\User::class
 
     /*
     |--------------------------------------------------------------------------

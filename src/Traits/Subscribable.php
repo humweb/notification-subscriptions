@@ -3,6 +3,7 @@
 namespace Humweb\Notifications\Traits;
 
 use Humweb\Notifications\Models\NotificationSubscription;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
@@ -11,7 +12,7 @@ trait Subscribable
     /**
      * Subscribe the user to a given notification type on a specific channel.
      */
-    public function subscribe(string $type, string $channel): ?NotificationSubscription
+    public function subscribe(string $type, string $channel): Model
     {
         if ($this->isSubscribedTo($type, $channel)) {
             return $this->subscriptions()->where('type', $type)->where('channel', $channel)->first();

@@ -11,10 +11,11 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, Subscribable;
 
+
     /**
      * The attributes that are mass assignable.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $fillable = [
         'email',
@@ -25,7 +26,7 @@ class User extends Authenticatable
     /**
      * The attributes that should be cast.
      *
-     * @var array
+     * @var array<string, string>
      */
     protected $casts = [
         'is_admin' => 'boolean',
