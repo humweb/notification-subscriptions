@@ -2,11 +2,15 @@
 
 namespace Humweb\Notifications\Models;
 
+use Humweb\Notifications\Database\Factories\PendingNotificationFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PendingNotification extends Model
 {
+    use HasFactory;
+
     protected $table = 'pending_notifications';
 
     protected $fillable = [
@@ -30,5 +34,15 @@ class PendingNotification extends Model
         // or your application's default user model.
         $userModel = config('notification-subscriptions.user_model', config('auth.providers.users.model'));
         return $this->belongsTo($userModel, 'user_id');
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    protected static function newFactory()
+    {
+        return PendingNotificationFactory::new();
     }
 } 

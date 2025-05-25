@@ -14,10 +14,29 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id'); // Changed to unsignedBigInteger for consistency with Laravel 8+ user id
             $table->string('type');
             $table->string('channel'); // Added channel column
+            $table->string('digest_interval')->default('immediate');
+            $table->time('digest_at_time')->nullable();
+            $table->string('digest_at_day')->nullable(); // e.g., 'monday', 'tuesday'
+            $table->timestamp('last_digest_sent_at')->nullable();
             $table->timestamps();
-
             $table->index('user_id');
             $table->unique(['user_id', 'type', 'channel']); // Updated unique constraint
+        });
+
+        Schema::table('notification_subscriptions', function (Blueprint $table) {
+
+        });
+
+        Schema::create('pending_notifications', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // We might not need notification_subscription_id if we store type and channel, makes it more flexible for digests
+            // $table->foreignId('notification_subscription_id')->constrained()->cascadeOnDelete();
+            $table->string('notification_type')->index(); // e.g., 'comment:created'
+            $table->string('channel'); // e.g., 'mail', 'database'
+            $table->string('notification_class'); // The FQCN of the original notification
+            $table->json('notification_data'); // Stores constructor args or payload
+            $table->timestamps();
         });
     }
 
@@ -30,5 +49,6 @@ return new class extends Migration
     {
         $tableName = config('notification-subscriptions.table_name', 'notification_subscriptions');
         Schema::dropIfExists($tableName);
+        Schema::dropIfExists('pending_notifications');
     }
 };

@@ -133,54 +133,111 @@ it('trait dispatch method sends to filtered subscribers', function () {
     Notification::assertNotSentTo($this->user1, NotifyWithFilter::class);
 });
 
-// Stub notification class that uses the DispatchesNotifications trait and has a filter method
-// This needs to be defined outside the test case, or in a separate stub file if preferred.
-// For simplicity here, let's assume it can be defined globally or autoloaded if in a real scenario.
-// However, PHPUnit/Pest tests usually run in a way that top-level classes defined in test files are fine.
+// New tests for digest functionality
+it('it stores notification in pending_notifications for daily digest preference', function () {
+    $this->user1->subscribe('event:new', 'mail', 'daily', '10:00:00');
+    $eventData = (object) ['id' => 100, 'name' => 'Daily Digest Test Event'];
 
-// Attempting to create a stub here, but it might be better in tests/Stubs/
-// For now, let's assume tests/Stubs/NotifyWithFilter.php exists and is structured like:
-/*
-namespace Humweb\Notifications\Tests\Stubs;
+    NotifyEventNew::dispatch($eventData);
 
-use Humweb\Notifications\Contracts\SubscribableNotification;
-use Humweb\Notifications\Traits\DispatchesNotifications;
-use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
-use Illuminate\Database\Eloquent\Builder;
+    Notification::assertNothingSentTo($this->user1, NotifyEventNew::class);
+    $this->assertDatabaseHas('pending_notifications', [
+        'user_id' => $this->user1->id,
+        'notification_type' => 'event:new',
+        'channel' => 'mail',
+        'notification_class' => NotifyEventNew::class,
+        'notification_data' => json_encode([$eventData]),
+    ]);
+});
 
-class NotifyWithFilter extends Notification implements SubscribableNotification
-{
-    use Queueable, DispatchesNotifications;
+it('it stores notification in pending_notifications for weekly digest preference', function () {
+    $this->user2->subscribe('event:new', 'sms', 'weekly', '11:00:00', 'wednesday');
+    $eventData = (object) ['id' => 200, 'name' => 'Weekly Digest Test Event'];
 
-    public $data;
+    NotifyEventNew::dispatch($eventData);
 
-    public function __construct($data)
-    {
-        $this->data = $data;
-    }
+    Notification::assertNothingSentTo($this->user2, NotifyEventNew::class);
+    $this->assertDatabaseHas('pending_notifications', [
+        'user_id' => $this->user2->id,
+        'notification_type' => 'event:new',
+        'channel' => 'sms',
+        'notification_class' => NotifyEventNew::class,
+        'notification_data' => json_encode([$eventData]),
+    ]);
+});
 
-    public static function subscriptionType(): string
-    {
-        return 'filtered:notification';
-    }
+it('it sends notification immediately if digest_interval is immediate', function () {
+    // user3 is subscribed to 'comment:replied', 'mail' (implicitly immediate)
+    $replyData = (object) ['id' => 300, 'content' => 'Immediate Reply'];
 
-    public function filter(Builder $query)
-    {
-        // Example filter: only users who are admins
-        // Assumes User model has an 'is_admin' attribute
-        $query->whereHas('user', function (Builder $userQuery) {
-            $userQuery->where('is_admin', true);
-        });
-    }
+    NotifyCommentReply::dispatch($replyData);
 
-    // Dummy via method, as DispatchesNotifications handles subscribers,
-    // but ChecksSubscription trait (if also used) would use this.
-    // For a notification that *only* uses DispatchesNotifications, this might not be strictly needed
-    // unless Laravel's Notification::send internally requires it.
-    public function via($notifiable): array
-    {
-        return ['mail']; // Or derive from config/user preference
-    }
-}
-*/
+    Notification::assertSentTo($this->user3, NotifyCommentReply::class);
+    $this->assertDatabaseMissing('pending_notifications', [
+        'user_id' => $this->user3->id,
+        'notification_type' => 'comment:replied',
+    ]);
+});
+
+it('ChecksSubscription via method returns only immediate channels', function () {
+    $this->user1->subscribe('event:new', 'mail', 'immediate');
+    $this->user1->subscribe('event:new', 'database', 'daily', '09:00');
+    $this->user1->subscribe('event:new', 'sms', 'weekly', '10:00', 'monday');
+
+    $notificationInstance = new NotifyEventNew((object)['id' => 1]);
+    $viaChannels = $notificationInstance->via($this->user1);
+
+    expect($viaChannels)->toBeArray()
+        ->toHaveCount(1)
+        ->toContain('mail')
+        ->not->toContain('database', 'sms');
+});
+
+it('dispatch sends to multiple immediate channels and stores for multiple digest channels correctly', function () {
+    // User1: event:new, mail (immediate); event:new, database (daily)
+    $this->user1->subscribe('event:new', 'mail', 'immediate');
+    $this->user1->subscribe('event:new', 'database', 'daily', '08:00');
+
+    // User2: event:new, mail (weekly); event:new, database (immediate)
+    $this->user2->subscribe('event:new', 'mail', 'weekly', '09:00', 'tuesday');
+    $this->user2->subscribe('event:new', 'sms', 'immediate');
+
+    $eventData = (object) ['id' => 400, 'name' => 'Mixed Dispatch Test'];
+    NotifyEventNew::dispatch($eventData);
+
+    // User1 assertions
+    Notification::assertSentTo($this->user1, NotifyEventNew::class, function ($notification, $channels, $notifiable) {
+        // The via method on NotifyEventNew (from ChecksSubscription) should restrict it to 'mail' for user1
+        return $channels === ['mail'];
+    });
+    $this->assertDatabaseHas('pending_notifications', [
+        'user_id' => $this->user1->id,
+        'notification_type' => 'event:new',
+        'channel' => 'database',
+    ]);
+
+    // User2 assertions
+    Notification::assertSentTo($this->user2, NotifyEventNew::class, function ($notification, $channels, $notifiable) {
+        // The via method should restrict it to 'sms' for user2
+        return $channels === ['sms'];
+    });
+    $this->assertDatabaseHas('pending_notifications', [
+        'user_id' => $this->user2->id,
+        'notification_type' => 'event:new',
+        'channel' => 'mail',
+    ]);
+});
+
+it('subscribers method in DispatchesNotifications still returns all potential users', function () {
+    // User1 has an immediate sub for comment:created mail
+    // User2 has an immediate sub for comment:created mail
+    // Let's add a digest subscription for user3 for comment:created mail
+    $this->user3->subscribe('comment:created', 'mail', 'daily', '07:00');
+
+    $notification = new NotifyCommentCreated((object)['id' => 1]);
+    $subscribers = $notification->subscribers();
+
+    // Should include user1, user2 (from beforeEach immediate), and user3 (newly added digest)
+    expect($subscribers)->toHaveCount(3)
+        ->pluck('id')->toContain($this->user1->id, $this->user2->id, $this->user3->id);
+});

@@ -5,6 +5,7 @@ namespace Humweb\Notifications\Traits;
 use Humweb\Notifications\Models\NotificationSubscription;
 use Humweb\Notifications\Models\PendingNotification;
 use Illuminate\Support\Facades\Notification as LaravelNotification;
+use Illuminate\Support\Facades\Log;
 
 trait DispatchesNotifications
 {
@@ -15,6 +16,7 @@ trait DispatchesNotifications
      */
     public static function dispatch(...$arguments)
     {
+        Log::info('[DispatchesNotifications] dispatch called for ' . static::class);
         $notificationInstance = new static(...$arguments);
         $notificationType = static::subscriptionType();
         $notificationClass = get_class($notificationInstance);
@@ -22,18 +24,23 @@ trait DispatchesNotifications
         // Get all users who have any kind of subscription to this notification type.
         // The subscribers() method applies the notification's own filter() if it exists.
         $potentialRecipients = $notificationInstance->subscribers();
+        $subscribers = $potentialRecipients;
+        Log::info('[DispatchesNotifications] Subscribers for type ' . $notificationType . ': ' . $subscribers->pluck('id')->implode(', '));
 
         $immediateRecipientsByChannel = [];
+        $uniqueUsersSentImmediate = collect();
 
-        foreach ($potentialRecipients as $recipient) {
+        foreach ($subscribers as $recipient) {
             if (! $recipient || ! $recipient->id) {
                 continue;
             }
 
+            Log::info('[DispatchesNotifications] Processing user ID: ' . $recipient->id . ' for type ' . $notificationType);
             // Fetch all subscriptions this user has for this specific notification type
             $subscriptions = NotificationSubscription::where('user_id', $recipient->id)
                 ->where('type', $notificationType)
                 ->get();
+            Log::info('[DispatchesNotifications] User ID: ' . $recipient->id . ' has ' . $subscriptions->count() . ' subscriptions for this type.');
 
             if ($subscriptions->isEmpty()) {
                 // This might happen if subscribers() had a broader filter that didn't perfectly align
@@ -42,66 +49,38 @@ trait DispatchesNotifications
             }
 
             foreach ($subscriptions as $subscription) {
+                Log::info('[DispatchesNotifications] Checking subscription ID: ' . $subscription->id . ' for User ID: ' . $recipient->id . ' - Channel: ' . $subscription->channel . ', Interval: ' . $subscription->digest_interval);
                 if ($subscription->digest_interval === 'immediate') {
-                    // Collect for immediate sending, grouped by channel
-                    // The actual sending will respect the notification's via() for that user and channel
+                    // Collect user for immediate sending, grouped by actual subscribed channel
                     if (!isset($immediateRecipientsByChannel[$subscription->channel])) {
                         $immediateRecipientsByChannel[$subscription->channel] = collect();
                     }
-                    // Ensure user is added only once per channel for this batch
+                    // Ensure user is added only once per channel for this batch to $immediateRecipientsByChannel
                     if (!$immediateRecipientsByChannel[$subscription->channel]->contains(fn($u) => $u->id === $recipient->id)) {
                          $immediateRecipientsByChannel[$subscription->channel]->push($recipient);
+                         Log::info('[DispatchesNotifications] Added User ID: ' . $recipient->id . ' to immediate send list for channel: ' . $subscription->channel);
                     }
+                    // The actual send will happen once at the end for all unique users collected.
                 } else {
-                    // Store for digest
+                    Log::info('[DispatchesNotifications] Storing for DIGEST notification for type ' . $notificationType . ' to User ID: ' . $recipient->id . ' for channel ' . $subscription->channel);
                     PendingNotification::create([
                         'user_id' => $recipient->id,
                         'notification_type' => $notificationType,
-                        'channel' => $subscription->channel, // Store the channel this digest is for
+                        'channel' => $subscription->channel,
                         'notification_class' => $notificationClass,
-                        'notification_data' => $arguments, // Store the original constructor arguments
+                        'notification_data' => $arguments,
                     ]);
                 }
             }
         }
 
-        // Send immediate notifications
-        // We need to ensure that LaravelNotification::send respects the specific channels determined here.
-        // The default Notification::send($users, $instance) will call $instance->via($user) for each user.
-        // If $instance->via($user) (from ChecksSubscription) returns multiple channels, it will send to all.
-        // We need to ensure only the intended *immediate* channels are used.
-
-        // A more robust way for immediate sending with specific channels:
-        foreach ($immediateRecipientsByChannel as $channel => $recipients) {
-            if ($recipients->isNotEmpty()) {
-                 // Temporarily override the viaChannels for the notification instance per send batch
-                 // This is a bit hacky. A cleaner way might involve a custom SendQueuedNotifications job
-                 // or modifying how Notification::send works, or ensuring `via()` can be told which single channel to use.
-
-                // For now, let's assume the notification's via() method, when called by Laravel, 
-                // will correctly determine only the channels the user is immediately subscribed to.
-                // The `ChecksSubscription::via` method already filters by subscribed channels.
-                // So, if a user is in $immediateRecipientsByChannel, it means they have an immediate
-                // subscription for that $channel for $notificationType.
-                // The default $notificationInstance->via($recipient) should work correctly if it only includes
-                // channels with 'immediate' subscriptions based on our logic.
-                // Let's make sure `ChecksSubscription::via` considers `digest_interval`
-
-                // Re-thinking: The current `ChecksSubscription::via` doesn't know about digest_interval.
-                // We should only pass users to LaravelNotification::send who are meant for immediate, and 
-                // `ChecksSubscription::via` should be updated to ONLY return channels that are 'immediate'.
-
-                // Simpler approach: Collect all unique users for immediate send, and let their
-                // (soon to be updated) via() method sort out the channels.
-            }
-        }
-        
         // Consolidate all unique users who need an immediate notification on AT LEAST one channel.
         $allImmediateUsers = collect($immediateRecipientsByChannel)
             ->flatMap(fn($usersCollection) => $usersCollection)
             ->unique(fn($user) => $user->id);
 
         if ($allImmediateUsers->isNotEmpty()) {
+            Log::info('[DispatchesNotifications] Sending immediate notifications to User IDs: ' . $allImmediateUsers->pluck('id')->implode(', ') . ' for notification type: ' . $notificationType);
             LaravelNotification::send($allImmediateUsers, $notificationInstance);
         }
     }

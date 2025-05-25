@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification as LaravelNotification;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 
 class SendNotificationDigests extends Command
 {
@@ -16,49 +17,52 @@ class SendNotificationDigests extends Command
 
     public function handle(): void
     {
+        Log::info('SendNotificationDigests command started.');
         $this->info('Processing notification digests...');
 
         $now = Carbon::now();
+        Log::info('Current time (Carbon::now()): ' . $now->toDateTimeString());
 
         // Fetch subscriptions that are due for a digest
-        // This query can be complex and might need optimization based on DB size
-        $dueSubscriptions = NotificationSubscription::query()
-            ->where('digest_interval', '!= ', 'immediate')
-            ->where(function ($query) use ($now) {
-                // Daily digests
-                $query->where(function ($q) use ($now) {
-                    $q->where('digest_interval', 'daily')
-                      ->whereNotNull('digest_at_time')
-                      ->whereTime('digest_at_time', ' <=', $now->format('H:i:s'))
-                      ->where(function ($subQ) use ($now) {
-                          $subQ->whereNull('last_digest_sent_at')
-                               ->orWhereDate('last_digest_sent_at', '<', $now->toDateString());
-                      });
-                })
-                // Weekly digests
-                ->orWhere(function ($q) use ($now) {
-                    $q->where('digest_interval', 'weekly')
-                      ->whereNotNull('digest_at_day')
-                      ->whereNotNull('digest_at_time')
-                      ->where('digest_at_day', strtolower($now->format('l'))) // 'l' gives full day name, e.g., Monday
-                      ->whereTime('digest_at_time', ' <=', $now->format('H:i:s'))
-                      ->where(function ($subQ) use ($now) {
-                            // Check if last sent was before this week's digest slot
+        $dueSubscriptionsQuery = NotificationSubscription::query()
+            ->where(function ($outerQuery) use ($now) {
+                $outerQuery->where(function ($dailyQuery) use ($now) {
+                    // Daily digests
+                    $dailyQuery->where('digest_interval', 'daily')
+                        ->whereTime('digest_at_time', '<=', $now->format('H:i:s'))
+                        ->where(function ($subQ) use ($now) {
                             $subQ->whereNull('last_digest_sent_at')
-                                 ->orWhere('last_digest_sent_at', '<', $now->copy()->startOfWeek()->modify('next '.$q->getModel()->digest_at_day)->setTimeFromTimeString($q->getModel()->digest_at_time));
-                      });
+                                ->orWhereDate('last_digest_sent_at', '<', $now->toDateString())
+                                ->orWhereRaw('DATE(last_digest_sent_at) = ? AND TIME(last_digest_sent_at) < digest_at_time', [$now->toDateString()]);
+                        });
+                })->orWhere(function ($weeklyQuery) use ($now) {
+                    // Weekly digests
+                    $weeklyQuery->where('digest_interval', 'weekly')
+                        ->whereRaw('LOWER(digest_at_day) = ?', [strtolower($now->format('l'))])
+                        ->whereTime('digest_at_time', '<=', $now->format('H:i:s'))
+                        ->where(function ($subQ) use ($now) {
+                            $subQ->whereNull('last_digest_sent_at')
+                                 ->orWhere(function($innerWeeklyQ) use ($now) { // Renamed $weeklyQ to $innerWeeklyQ to avoid conflict
+                                     $innerWeeklyQ->whereRaw("last_digest_sent_at < datetime(?, '-6 days')", [$now->toDateTimeString()]);
+                                 });
+                        });
                 });
-            })
-            ->get();
+            });
+            
+        $dueSubscriptions = $dueSubscriptionsQuery->get();
 
         if ($dueSubscriptions->isEmpty()) {
             $this->info('No digests due at this time.');
+            Log::info('No digests due at this time.');
             return;
         }
 
         $this->info("Found {" . $dueSubscriptions->count() . "} subscriptions due for digest.");
+        Log::info("Found " . $dueSubscriptions->count() . " subscriptions due for digest. IDs: " . $dueSubscriptions->pluck('id')->implode(', '));
 
         foreach ($dueSubscriptions as $subscription) {
+            Log::info("Processing subscription ID: {$subscription->id}, User ID: {$subscription->user_id}, Type: {$subscription->type}, Channel: {$subscription->channel}, Digest Interval: {$subscription->digest_interval}, Digest At Time: {$subscription->digest_at_time}, Digest At Day: {$subscription->digest_at_day}, Last Sent: {$subscription->last_digest_sent_at}");
+            
             $pending = PendingNotification::where('user_id', $subscription->user_id)
                 ->where('notification_type', $subscription->type)
                 ->where('channel', $subscription->channel)
@@ -66,16 +70,15 @@ class SendNotificationDigests extends Command
                 ->get();
 
             if ($pending->isEmpty()) {
-                // Update last_digest_sent_at even if nothing to send to prevent re-processing immediately
+                Log::info("No pending notifications for subscription ID: {$subscription->id}. Updating last_digest_sent_at to: " . $now->toDateTimeString());
                 $subscription->update(['last_digest_sent_at' => $now]);
+                Log::info("last_digest_sent_at updated for subscription ID: {$subscription->id}. Current value in model: " . ($subscription->last_digest_sent_at ? $subscription->last_digest_sent_at->toDateTimeString() : 'null'));
                 continue;
             }
 
             $this->line("Processing digest for User ID: {$subscription->user_id}, Type: {$subscription->type}, Channel: {$subscription->channel}. {" . $pending->count() . "} items.");
+            Log::info("Found {$pending->count()} pending items for subscription ID: {$subscription->id}.");
 
-            // Group pending notifications by their original notification class
-            // to potentially create more structured digest notifications.
-            // For now, we'll pass all as a single collection.
             $notificationDataForDigest = $pending->map(function ($item) {
                 return [
                     'class' => $item->notification_class,
@@ -84,12 +87,12 @@ class SendNotificationDigests extends Command
                 ];
             });
 
-            // Dynamically create and dispatch the digest notification
-            // You'll need to create a `UserNotificationDigest` notification class
-            $digestNotificationClass = Config::get('notification-subscriptions.digest_notification_class', 'App\Notifications\UserNotificationDigest'); 
+            $digestNotificationClass = Config::get('notification-subscriptions.digest_notification_class', 'App\\Notifications\\UserNotificationDigest');
+            Log::info("Using digest notification class: {$digestNotificationClass} for subscription ID: {$subscription->id}");
             
             if (!class_exists($digestNotificationClass)) {
                 $this->error("Digest notification class '{$digestNotificationClass}' not found. Skipping digest for User ID: {$subscription->user_id}.");
+                Log::error("Digest notification class '{$digestNotificationClass}' not found for subscription ID: {$subscription->id}.");
                 continue;
             }
 
@@ -97,28 +100,29 @@ class SendNotificationDigests extends Command
                 $recipient = $subscription->user;
                 if (!$recipient) {
                     $this->warn("User not found for subscription ID: {$subscription->id}. Skipping.");
-                    // Clean up orphaned pending notifications if user is gone?
-                    // PendingNotification::where('user_id', $subscription->user_id)->delete();
+                    Log::warn("User not found for subscription ID: {$subscription->id}.");
                     continue;
                 }
 
-                // The UserNotificationDigest should be designed to accept the channel and data
+                Log::info("Attempting to send digest to User ID: {$recipient->id} for subscription ID: {$subscription->id} via channel: {$subscription->channel}");
                 LaravelNotification::send($recipient, new $digestNotificationClass($subscription->channel, $notificationDataForDigest));
+                Log::info("Digest notification supposedly sent for subscription ID: {$subscription->id}.");
                 
-                // Delete sent pending notifications
                 PendingNotification::whereIn('id', $pending->pluck('id'))->delete();
+                Log::info("Deleted {$pending->count()} pending notifications for subscription ID: {$subscription->id}.");
 
-                // Update last sent timestamp
                 $subscription->update(['last_digest_sent_at' => $now]);
+                Log::info("last_digest_sent_at updated after sending digest for subscription ID: {$subscription->id} to: " . $now->toDateTimeString() . ". Current value in model: " . ($subscription->last_digest_sent_at ? $subscription->last_digest_sent_at->toDateTimeString() : 'null'));
 
                 $this->info("Digest sent for User ID: {$subscription->user_id}, Type: {$subscription->type}, Channel: {$subscription->channel}");
 
             } catch (\Exception $e) {
                 $this->error("Failed to send digest for User ID: {$subscription->user_id}, Type: {$subscription->type}, Channel: {$subscription->channel}. Error: " . $e->getMessage());
-                // Optionally, log the full error or re-queue with backoff
+                Log::error("Exception during digest sending for subscription ID: {$subscription->id}. Error: " . $e->getMessage(), ['exception' => $e]);
             }
         }
 
         $this->info('Digest processing complete.');
+        Log::info('SendNotificationDigests command finished.');
     }
 } 
