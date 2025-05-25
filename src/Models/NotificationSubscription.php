@@ -22,6 +22,14 @@ class NotificationSubscription extends Model
         'user_id',
         'type',
         'channel',
+        'digest_interval',
+        'digest_at_time',
+        'digest_at_day',
+        'last_digest_sent_at',
+    ];
+
+    protected $casts = [
+        'last_digest_sent_at' => 'datetime',
     ];
 
     /**

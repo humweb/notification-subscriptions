@@ -2,6 +2,7 @@
 
 namespace Humweb\Notifications;
 
+use Humweb\Notifications\Console\SendNotificationDigests;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
@@ -17,7 +18,8 @@ class NotificationSubscriptionsServiceProvider extends PackageServiceProvider
         $package
             ->name('notification-subscriptions')
             ->hasConfigFile('notification-subscriptions')
-            ->hasMigration('create_notification_subscriptions_table');
+            ->hasMigration('create_notification_subscriptions_table')
+            ->hasCommand(SendNotificationDigests::class);
 
         // Load test-specific migrations if in testing environment
         if ($this->app->environment('testing')) {
