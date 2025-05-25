@@ -42,7 +42,6 @@ class NotificationSubscriptions
     public function getNotificationClass(string $type): ?string
     {
         $notificationTypeConfig = config("notification-subscriptions.notifications.{$type}", null);
-        //        dd($notificationTypeConfig,$type, config("notification-subscriptions.notifications.comment.created"));
         if (is_array($notificationTypeConfig)) {
             return $notificationTypeConfig['class'] ?? null;
         }

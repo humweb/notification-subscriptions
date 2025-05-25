@@ -14,6 +14,21 @@ class UserFactory extends Factory
         return [
             'email' => $this->faker->email,
             'name' => $this->faker->userName,
+            'is_admin' => false,
         ];
+    }
+
+    /**
+     * Indicate that the user is an admin.
+     *
+     * @return \Illuminate\Database\Eloquent\Factories\Factory
+     */
+    public function admin()
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'is_admin' => true,
+            ];
+        });
     }
 }

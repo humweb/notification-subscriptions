@@ -19,6 +19,16 @@ class User extends Authenticatable
     protected $fillable = [
         'email',
         'name',
+        'is_admin',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'is_admin' => 'boolean',
     ];
 
     protected static function newFactory()
