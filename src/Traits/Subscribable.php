@@ -10,18 +10,52 @@ use Illuminate\Support\Collection;
 trait Subscribable
 {
     /**
-     * Subscribe the user to a given notification type on a specific channel.
+     * Subscribe the user to a given notification type on a specific channel,
+     * optionally with digest preferences.
+     *
+     * @param string $type The notification type (e.g., 'comment:created').
+     * @param string $channel The channel (e.g., 'mail', 'database').
+     * @param string $digestInterval Digest interval ('immediate', 'daily', 'weekly'). Defaults to 'immediate'.
+     * @param string|null $digestAtTime Time for daily/weekly digests (e.g., '09:00:00').
+     * @param string|null $digestAtDay Day for weekly digests (e.g., 'monday').
+     * @return Model The NotificationSubscription model instance.
      */
-    public function subscribe(string $type, string $channel): Model
+    public function subscribe(string $type, string $channel, string $digestInterval = 'immediate', ?string $digestAtTime = null, ?string $digestAtDay = null): Model
     {
-        if ($this->isSubscribedTo($type, $channel)) {
-            return $this->subscriptions()->where('type', $type)->where('channel', $channel)->first();
+        // Normalize digest_at_day to lowercase if provided
+        if ($digestAtDay !== null) {
+            $digestAtDay = strtolower($digestAtDay);
         }
 
-        return $this->subscriptions()->create([
+        // If interval is immediate, nullify time and day
+        if ($digestInterval === 'immediate') {
+            $digestAtTime = null;
+            $digestAtDay = null;
+        } elseif ($digestInterval === 'daily') {
+            $digestAtDay = null; // Ensure day is null for daily
+        }
+
+        $subscription = $this->subscriptions()
+            ->where('type', $type)
+            ->where('channel', $channel)
+            ->first();
+
+        $subscriptionData = [
             'type' => $type,
             'channel' => $channel,
-        ]);
+            'digest_interval' => $digestInterval,
+            'digest_at_time' => $digestAtTime,
+            'digest_at_day' => $digestAtDay,
+        ];
+
+        if ($subscription) {
+            // Update existing subscription with new digest preferences
+            $subscription->update($subscriptionData);
+            return $subscription;
+        }
+
+        // Create new subscription
+        return $this->subscriptions()->create($subscriptionData);
     }
 
     /**
@@ -33,11 +67,27 @@ trait Subscribable
     }
 
     /**
-     * Check if the user is subscribed to a given notification type on a specific channel.
+     * Check if the user is subscribed to a given notification type on a specific channel,
+     * regardless of digest preference.
      */
     public function isSubscribedTo(string $type, string $channel): bool
     {
         return $this->subscriptions()->where('type', $type)->where('channel', $channel)->exists();
+    }
+
+    /**
+     * Get all subscription details (including digest preferences) for a given notification type and channel.
+     *
+     * @param string $type
+     * @param string $channel
+     * @return Model|null The NotificationSubscription model or null if not found.
+     */
+    public function getSubscriptionDetails(string $type, string $channel): ?Model
+    {
+        return $this->subscriptions()
+            ->where('type', $type)
+            ->where('channel', $channel)
+            ->first();
     }
 
     /**
