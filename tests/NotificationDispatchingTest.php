@@ -108,4 +108,3 @@ it('does not dispatch notification if notification type is not in config', funct
 
 // Future test: Once DispatchesNotifications respects specific channels from NotificationSubscription records
 // it('dispatches notification only via channels user is subscribed to for that type', function () { ... });
-

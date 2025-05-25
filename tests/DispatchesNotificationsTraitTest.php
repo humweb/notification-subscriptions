@@ -6,10 +6,10 @@ use Humweb\Notifications\Tests\Stubs\NotifyCommentCreated;
 use Humweb\Notifications\Tests\Stubs\NotifyCommentReply;
 use Humweb\Notifications\Tests\Stubs\NotifyEventNew;
 use Humweb\Notifications\Tests\Stubs\NotifyWithFilter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Database\Eloquent\Builder;
 
 uses(RefreshDatabase::class);
 
@@ -55,7 +55,7 @@ beforeEach(function () {
             'channels' => [
                 ['name' => 'mail', 'label' => 'Email'],
             ],
-        ]
+        ],
     ]);
 
     // Subscriptions
@@ -116,7 +116,7 @@ it('trait dispatch method passes arguments to notification constructor', functio
 });
 
 it('trait subscribers method respects filter method on notification class', function () {
-    $data = (object)['id' => 1];
+    $data = (object) ['id' => 1];
     $notification = new NotifyWithFilter($data); // NotifyWithFilter has a filter for admin users
     $subscribers = $notification->subscribers();
 
@@ -126,7 +126,7 @@ it('trait subscribers method respects filter method on notification class', func
 });
 
 it('trait dispatch method sends to filtered subscribers', function () {
-    $data = (object)['id' => 1];
+    $data = (object) ['id' => 1];
     NotifyWithFilter::dispatch($data); // NotifyWithFilter has a filter for admin users
 
     Notification::assertSentTo($this->adminUser, NotifyWithFilter::class);
@@ -183,4 +183,4 @@ class NotifyWithFilter extends Notification implements SubscribableNotification
         return ['mail']; // Or derive from config/user preference
     }
 }
-*/ 
+*/

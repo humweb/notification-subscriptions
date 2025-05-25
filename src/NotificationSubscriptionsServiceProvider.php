@@ -23,7 +23,7 @@ class NotificationSubscriptionsServiceProvider extends PackageServiceProvider
         if ($this->app->environment('testing')) {
             // Correct path assuming service provider is in src/
             // and migrations are in database/migrations relative to package root
-            $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+            $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         }
     }
 

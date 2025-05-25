@@ -3,14 +3,14 @@
 namespace Humweb\Notifications\Tests\Stubs;
 
 use Humweb\Notifications\Contracts\SubscribableNotification;
-use Humweb\Notifications\Traits\DispatchesNotifications; // Assuming it might use this for static dispatch
-use Humweb\Notifications\Traits\ChecksSubscription; // Assuming it might use this for via()
+use Humweb\Notifications\Traits\ChecksSubscription; // Assuming it might use this for static dispatch
+use Humweb\Notifications\Traits\DispatchesNotifications; // Assuming it might use this for via()
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 class NotifyEventNew extends Notification implements SubscribableNotification
 {
-    use Queueable, ChecksSubscription, DispatchesNotifications;
+    use ChecksSubscription, DispatchesNotifications, Queueable;
 
     public $event;
 
@@ -27,4 +27,4 @@ class NotifyEventNew extends Notification implements SubscribableNotification
     // The via() method will be provided by ChecksSubscription if users are notified directly.
     // If using static dispatch from DispatchesNotifications, the channels are determined by ChecksSubscription
     // on each resolved notifiable.
-} 
+}
