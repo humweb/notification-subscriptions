@@ -5,12 +5,12 @@ namespace Humweb\Notifications\Tests\Stubs;
 use Humweb\Notifications\Contracts\SubscribableNotification;
 use Humweb\Notifications\Traits\DispatchesNotifications;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Notifications\Notification;
 
 class NotifyWithFilter extends Notification implements SubscribableNotification
 {
-    use Queueable, DispatchesNotifications;
+    use DispatchesNotifications, Queueable;
 
     public $data;
 
@@ -27,7 +27,6 @@ class NotifyWithFilter extends Notification implements SubscribableNotification
     /**
      * Filter the subscribers for this notification.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return void
      */
     public function filter(Builder $query)
@@ -49,7 +48,6 @@ class NotifyWithFilter extends Notification implements SubscribableNotification
      * Since this stub is specifically for testing DispatchesNotifications' filter, we can keep it simple.
      *
      * @param  mixed  $notifiable
-     * @return array
      */
     public function via($notifiable): array
     {
@@ -57,4 +55,4 @@ class NotifyWithFilter extends Notification implements SubscribableNotification
         // In a real scenario, ChecksSubscription would handle this more dynamically.
         return ['mail'];
     }
-} 
+}

@@ -87,7 +87,7 @@ it('can get user label with different attributes', function () {
     expect(NotificationSubscriptions::getUserLabel($userWithAll))->toEqual('all@example.com'); // Email has priority
 
     expect(NotificationSubscriptions::getUserLabel(null))->toBeNull();
-    expect(NotificationSubscriptions::getUserLabel((object)['foo'=>'bar']))->toBeNull();
+    expect(NotificationSubscriptions::getUserLabel((object) ['foo' => 'bar']))->toBeNull();
 });
 
 it('can get subscribable notification types list with channels', function () {
