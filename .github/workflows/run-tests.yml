@@ -31,8 +31,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
-          coverage: none
+          extensions: mbstring, pdo, sqlite, pdo_sqlite
+          coverage: xdebug
 
       - name: Setup problem matchers
         run: |
@@ -47,5 +47,14 @@ jobs:
       - name: List Installed Dependencies
         run: composer show -D
 
-      - name: Execute tests
-        run: vendor/bin/pest
+      - name: Run Tests with Coverage
+        run: ./vendor/bin/pest --coverage --coverage-clover=coverage.xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: humweb/notification-subscriptions
+          files: coverage.xml
+          fail_ci_if_error: true
+          verbose: true

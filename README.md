@@ -3,6 +3,7 @@
 [//]: # "[![Latest Version on Packagist](https://img.shields.io/packagist/v/humweb/notification-subscriptions.svg?style=flat-square)](https://packagist.org/packages/humweb/notification-subscriptions)"
 
 [![Tests](https://github.com/humweb/notification-subscriptions/actions/workflows/run-tests.yml/badge.svg)](https://github.com/humweb/notification-subscriptions/actions/workflows/run-tests.yml)
+[![codecov](https://codecov.io/gh/humweb/notification-subscriptions/graph/badge.svg)](https://codecov.io/gh/humweb/notification-subscriptions)
 [![Code Style](https://github.com/humweb/notification-subscriptions/actions/workflows/fix-php-code-style-issues.yml/badge.svg)](https://github.com/humweb/notification-subscriptions/actions/workflows/fix-php-code-style-issues.yml)
 [![PHPStan](https://github.com/humweb/notification-subscriptions/actions/workflows/phpstan.yml/badge.svg)](https://github.com/humweb/notification-subscriptions/actions/workflows/phpstan.yml)
 
