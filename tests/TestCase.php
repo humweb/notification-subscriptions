@@ -30,9 +30,13 @@ class TestCase extends Orchestra
         config()->set('database.default', 'testing');
 
         $app['db']->connection()->getSchemaBuilder()->create('users', function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('email');
+            $table->id();
             $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password')->nullable(); // Often nullable for stubs/testing
+            $table->boolean('is_admin')->default(false);
+            $table->rememberToken();
             $table->timestamps();
         });
 
