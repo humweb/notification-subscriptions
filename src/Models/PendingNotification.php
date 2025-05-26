@@ -33,6 +33,7 @@ class PendingNotification extends Model
         // It's important that this user model matches what's defined in the config
         // or your application's default user model.
         $userModel = config('notification-subscriptions.user_model', config('auth.providers.users.model'));
+
         return $this->belongsTo($userModel, 'user_id');
     }
 
@@ -45,4 +46,4 @@ class PendingNotification extends Model
     {
         return PendingNotificationFactory::new();
     }
-} 
+}

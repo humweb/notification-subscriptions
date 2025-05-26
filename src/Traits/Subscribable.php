@@ -13,11 +13,11 @@ trait Subscribable
      * Subscribe the user to a given notification type on a specific channel,
      * optionally with digest preferences.
      *
-     * @param string $type The notification type (e.g., 'comment:created').
-     * @param string $channel The channel (e.g., 'mail', 'database').
-     * @param string $digestInterval Digest interval ('immediate', 'daily', 'weekly'). Defaults to 'immediate'.
-     * @param string|null $digestAtTime Time for daily/weekly digests (e.g., '09:00:00').
-     * @param string|null $digestAtDay Day for weekly digests (e.g., 'monday').
+     * @param  string  $type  The notification type (e.g., 'comment:created').
+     * @param  string  $channel  The channel (e.g., 'mail', 'database').
+     * @param  string  $digestInterval  Digest interval ('immediate', 'daily', 'weekly'). Defaults to 'immediate'.
+     * @param  string|null  $digestAtTime  Time for daily/weekly digests (e.g., '09:00:00').
+     * @param  string|null  $digestAtDay  Day for weekly digests (e.g., 'monday').
      * @return Model The NotificationSubscription model instance.
      */
     public function subscribe(string $type, string $channel, string $digestInterval = 'immediate', ?string $digestAtTime = null, ?string $digestAtDay = null): Model
@@ -51,6 +51,7 @@ trait Subscribable
         if ($subscription) {
             // Update existing subscription with new digest preferences
             $subscription->update($subscriptionData);
+
             return $subscription;
         }
 
@@ -78,8 +79,6 @@ trait Subscribable
     /**
      * Get all subscription details (including digest preferences) for a given notification type and channel.
      *
-     * @param string $type
-     * @param string $channel
      * @return Model|null The NotificationSubscription model or null if not found.
      */
     public function getSubscriptionDetails(string $type, string $channel): ?Model

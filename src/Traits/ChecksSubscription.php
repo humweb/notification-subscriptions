@@ -2,9 +2,7 @@
 
 namespace Humweb\Notifications\Traits;
 
-use Humweb\Notifications\Models\NotificationSubscription;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
 trait ChecksSubscription
@@ -23,12 +21,13 @@ trait ChecksSubscription
         $availableChannels = $this->getNotificationChannelsFromConfig($subscriptionType);
         $subscribedChannels = [];
 
-        if ( ! method_exists($notifiable, 'getSubscriptionDetails')) {
+        if (! method_exists($notifiable, 'getSubscriptionDetails')) {
             // If the notifiable doesn't use the Subscribable trait (or similar)
             // then it cannot have digest preferences. Fallback to all available channels for type.
             // Or, decide to send nothing if strict subscription is required.
             // For now, let's assume if it can't get details, it shouldn't receive through this system.
             Log::warning("[ChecksSubscription] Notifiable ID: {$notifiable->id} does not use Subscribable trait for notification type: {$subscriptionType}. No channels returned.");
+
             return [];
         }
 
@@ -40,7 +39,8 @@ trait ChecksSubscription
                 $subscribedChannels[] = $channelName;
             }
         }
-//        Log::info("[ChecksSubscription] via() for Notifiable ID: {$notifiable->id}, Type: {$subscriptionType}, Determined Channels: " . implode(', ', $subscribedChannels));
+
+        //        Log::info("[ChecksSubscription] via() for Notifiable ID: {$notifiable->id}, Type: {$subscriptionType}, Determined Channels: " . implode(', ', $subscribedChannels));
         return $subscribedChannels;
     }
 
@@ -60,11 +60,12 @@ trait ChecksSubscription
         }
 
         // Ensure it's an array of arrays (channel configurations)
-        if (!is_array(Arr::first($channels))) {
+        if (! is_array(Arr::first($channels))) {
             // This might indicate a misconfiguration, but for robustness, handle it.
             // Or throw an exception / log an error.
             // For now, if it's not an array of arrays, assume misconfiguration and return empty.
             Log::error("[ChecksSubscription] Misconfiguration: 'channels' for type '{$type}' is not an array of arrays.");
+
             return [];
         }
 
