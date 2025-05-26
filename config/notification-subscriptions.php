@@ -44,6 +44,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Available Digest Intervals
+    |--------------------------------------------------------------------------
+    |
+    | Define the digest intervals available for users to choose from.
+    | The key is the internal identifier (e.g., 'daily') and the value is
+    | a human-readable label (e.g., 'Daily').
+    |
+    */
+    'digest_intervals' => [
+        'immediate' => 'Immediate',
+        'daily' => 'Daily',
+        'weekly' => 'Weekly',
+        // 'custom' => 'Custom', // Future: For more complex custom intervals
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Digest Notification Class
+    |--------------------------------------------------------------------------
+    |
+    | Specify the class name of the notification that will be used to send
+    | compiled digests. This class will receive the channel and a collection
+    | of pending notification data.
+    |
+    */
+    'digest_notification_class' => \Humweb\Notifications\Notifications\UserNotificationDigest::class, // Default, can be overridden by app
+
+    /*
+    |--------------------------------------------------------------------------
     | Subscribable Notification Types
     |--------------------------------------------------------------------------
     |

@@ -158,3 +158,109 @@ it('subscription belongs to a user', function () {
     expect($subscription->user)->toBeInstanceOf(User::class)
         ->and($subscription->user->id)->toEqual($this->user->id);
 });
+
+it('it can subscribe with immediate digest preference (default)', function () {
+    $user = User::factory()->create();
+    $subscription = $user->subscribe('event:new', 'sms');
+
+    expect($subscription->digest_interval)->toEqual('immediate');
+    expect($subscription->digest_at_time)->toBeNull();
+    expect($subscription->digest_at_day)->toBeNull();
+    $this->assertDatabaseHas('notification_subscriptions', [
+        'user_id' => $user->id,
+        'type' => 'event:new',
+        'channel' => 'sms',
+        'digest_interval' => 'immediate',
+        'digest_at_time' => null,
+        'digest_at_day' => null,
+    ]);
+});
+
+it('it can subscribe with daily digest preference', function () {
+    $user = User::factory()->create();
+    $subscription = $user->subscribe('event:new', 'mail', 'daily', '09:00:00');
+
+    expect($subscription->digest_interval)->toEqual('daily');
+    expect($subscription->digest_at_time)->toEqual('09:00:00');
+    expect($subscription->digest_at_day)->toBeNull();
+    $this->assertDatabaseHas('notification_subscriptions', [
+        'user_id' => $user->id,
+        'type' => 'event:new',
+        'channel' => 'mail',
+        'digest_interval' => 'daily',
+        'digest_at_time' => '09:00:00',
+        'digest_at_day' => null,
+    ]);
+});
+
+it('it can subscribe with weekly digest preference', function () {
+    $user = User::factory()->create();
+    $subscription = $user->subscribe('event:new', 'database', 'weekly', '10:30:00', 'monday');
+
+    expect($subscription->digest_interval)->toEqual('weekly');
+    expect($subscription->digest_at_time)->toEqual('10:30:00');
+    expect($subscription->digest_at_day)->toEqual('monday');
+    $this->assertDatabaseHas('notification_subscriptions', [
+        'user_id' => $user->id,
+        'type' => 'event:new',
+        'channel' => 'database',
+        'digest_interval' => 'weekly',
+        'digest_at_time' => '10:30:00',
+        'digest_at_day' => 'monday',
+    ]);
+});
+
+it('it updates existing subscription with new digest preferences', function () {
+    // $this->user is already subscribed to 'comment:created' channel 'mail' (implicitly immediate)
+    $initialSubscription = $this->user->getSubscriptionDetails('comment:created', 'mail');
+    expect($initialSubscription->digest_interval)->toEqual('immediate');
+
+    $updatedSubscription = $this->user->subscribe('comment:created', 'mail', 'daily', '08:00:00');
+
+    expect($updatedSubscription->id)->toEqual($initialSubscription->id); // Same record
+    expect($updatedSubscription->digest_interval)->toEqual('daily');
+    expect($updatedSubscription->digest_at_time)->toEqual('08:00:00');
+    expect($updatedSubscription->digest_at_day)->toBeNull();
+    $this->assertDatabaseCount('notification_subscriptions', 4); // 3 initial for user1, 1 for user2 = 4. No new one created for user1.
+    $this->assertDatabaseHas('notification_subscriptions', [
+        'id' => $initialSubscription->id,
+        'digest_interval' => 'daily',
+        'digest_at_time' => '08:00:00',
+    ]);
+});
+
+it('it normalizes digest_at_day to lowercase', function () {
+    $user = User::factory()->create();
+    $subscription = $user->subscribe('event:new', 'sms', 'weekly', '10:00:00', 'TUESDAY');
+    expect($subscription->digest_at_day)->toEqual('tuesday');
+});
+
+it('it nullifies digest_at_time and digest_at_day if interval is immediate', function () {
+    $user = User::factory()->create();
+    $subscription = $user->subscribe('event:new', 'sms', 'immediate', '09:00:00', 'monday');
+    expect($subscription->digest_at_time)->toBeNull();
+    expect($subscription->digest_at_day)->toBeNull();
+});
+
+it('it nullifies digest_at_day if interval is daily', function () {
+    $user = User::factory()->create();
+    $subscription = $user->subscribe('event:new', 'sms', 'daily', '09:00:00', 'monday');
+    expect($subscription->digest_at_day)->toBeNull();
+});
+
+it('getSubscriptionDetails returns correct digest preferences', function () {
+    $user = User::factory()->create();
+    $user->subscribe('event:new', 'mail', 'weekly', '14:00:00', 'friday');
+
+    $details = $user->getSubscriptionDetails('event:new', 'mail');
+    expect($details)->not->toBeNull();
+    expect($details->digest_interval)->toEqual('weekly');
+    expect($details->digest_at_time)->toEqual('14:00:00');
+    expect($details->digest_at_day)->toEqual('friday');
+});
+
+it('getSubscriptionDetails returns null if not subscribed', function () {
+    $user = User::factory()->create();
+    $details = $user->getSubscriptionDetails('event:new', 'sms');
+    expect($details)->toBeNull();
+});
