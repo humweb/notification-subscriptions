@@ -51,7 +51,7 @@ class NotificationSubscriptionController extends Controller
             'availableDigestIntervals' => $availableDigestIntervals,
             'availableDaysOfWeek' => [ // Added as per README example
                 'monday' => 'Monday', 'tuesday' => 'Tuesday', 'wednesday' => 'Wednesday',
-                'thursday' => 'Thursday', 'friday' => 'Friday', 'saturday' => 'Saturday', 'sunday' => 'Sunday'
+                'thursday' => 'Thursday', 'friday' => 'Friday', 'saturday' => 'Saturday', 'sunday' => 'Sunday',
             ],
         ]);
     }
@@ -91,7 +91,7 @@ class NotificationSubscriptionController extends Controller
             $digestInterval = $validatedData['digest_interval'];
             $digestAtTime = $validatedData['digest_at_time'];
             $digestAtDay = $validatedData['digest_at_day'];
-            
+
             // Ensure time has seconds for storage if provided
             if ($digestAtTime && count(explode(':', $digestAtTime)) === 2) {
                 $digestAtTime .= ':00';
