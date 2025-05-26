@@ -22,32 +22,37 @@ class NotificationSubscriptionController extends Controller
         $definedNotificationTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
         $availableDigestIntervals = Config::get('notification-subscriptions.digest_intervals', []);
 
-        $subscriptionsData = collect($definedNotificationTypes)->map(function ($typeDetails, $type) use ($user) {
-            $configuredChannels = $typeDetails['channels'] ?? [];
+        // Prepare settings in the structure expected by the Vue component in README
+        $notificationSettings = collect($definedNotificationTypes)->mapWithKeys(function ($typeDetails, $typeKey) use ($user) {
+            $channels = collect($typeDetails['channels'] ?? [])->map(function ($channelConfig) use ($user, $typeKey) {
+                $subscription = $user ? $user->getSubscriptionDetails($typeKey, $channelConfig['name']) : null;
+                $digestAtTime = $subscription->digest_at_time ?? '09:00:00'; // Default with seconds
 
-            $channels = collect($configuredChannels)->map(function ($channelConfig) use ($user, $type) {
-                $subscriptionDetails = $user ? $user->getSubscriptionDetails($type, $channelConfig['name']) : null;
                 return [
                     'name' => $channelConfig['name'],
                     'label' => $channelConfig['label'],
-                    'subscribed' => (bool) $subscriptionDetails,
-                    'digest_interval' => $subscriptionDetails->digest_interval ?? 'immediate',
-                    'digest_at_time' => $subscriptionDetails->digest_at_time ?? null,
-                    'digest_at_day' => $subscriptionDetails->digest_at_day ?? null,
+                    'subscribed' => (bool) $subscription,
+                    'digest_interval' => $subscription->digest_interval ?? 'immediate',
+                    // Format time to HH:MM for the input field
+                    'digest_at_time' => $digestAtTime ? substr($digestAtTime, 0, 5) : '09:00',
+                    'digest_at_day' => $subscription->digest_at_day ?? 'monday', // Default day
                 ];
             })->all();
 
-            return [
-                'type' => $type,
-                'label' => $typeDetails['label'] ?? $type,
+            return [$typeKey => [
+                'label' => $typeDetails['label'] ?? $typeKey,
                 'description' => $typeDetails['description'] ?? '',
                 'channels' => $channels,
-            ];
-        })->values()->all();
+            ]];
+        })->all();
 
         return Inertia::render('Profile/NotificationSettings', [
-            'subscriptionsData' => $subscriptionsData,
+            'notificationSettings' => $notificationSettings, // Changed from subscriptionsData
             'availableDigestIntervals' => $availableDigestIntervals,
+            'availableDaysOfWeek' => [ // Added as per README example
+                'monday' => 'Monday', 'tuesday' => 'Tuesday', 'wednesday' => 'Wednesday',
+                'thursday' => 'Thursday', 'friday' => 'Friday', 'saturday' => 'Saturday', 'sunday' => 'Sunday'
+            ],
         ]);
     }
 
@@ -62,18 +67,18 @@ class NotificationSubscriptionController extends Controller
         $definedNotificationTypes = NotificationSubscriptionsManager::getSubscribableNotificationTypes();
         $availableDigestIntervals = Config::get('notification-subscriptions.digest_intervals', []);
 
-        $request->validate([
+        $validatedData = $request->validate([
             'type' => ['required', 'string', Rule::in(array_keys($definedNotificationTypes))],
             'channel' => ['required', 'string'],
             'subscribed' => ['required', 'boolean'],
-            'digest_interval' => ['sometimes', 'required_if:subscribed,true', Rule::in(array_keys($availableDigestIntervals))],
-            'digest_at_time' => ['nullable', 'date_format:H:i', 'required_if:digest_interval,daily', 'required_if:digest_interval,weekly'],
-            'digest_at_day' => ['nullable', 'string', 'alpha', Rule::in(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']), 'required_if:digest_interval,weekly'],
+            'digest_interval' => ['required', 'string', Rule::in(array_keys($availableDigestIntervals))],
+            'digest_at_time' => ['nullable', 'required_if:digest_interval,daily', 'required_if:digest_interval,weekly', 'date_format:H:i'],
+            'digest_at_day' => ['nullable', 'required_if:digest_interval,weekly', 'string', 'alpha', Rule::in(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])],
         ]);
 
-        $type = $request->input('type');
-        $channelName = $request->input('channel');
-        $isSubscribing = $request->input('subscribed');
+        $type = $validatedData['type'];
+        $channelName = $validatedData['channel'];
+        $isSubscribing = $validatedData['subscribed'];
 
         $typeConfig = $definedNotificationTypes[$type] ?? null;
         $allowedChannels = collect($typeConfig['channels'] ?? [])->pluck('name')->all();
@@ -83,10 +88,11 @@ class NotificationSubscriptionController extends Controller
         }
 
         if ($isSubscribing) {
-            $digestInterval = $request->input('digest_interval', 'immediate');
-            $digestAtTime = $request->input('digest_at_time');
-            $digestAtDay = $request->input('digest_at_day');
+            $digestInterval = $validatedData['digest_interval'];
+            $digestAtTime = $validatedData['digest_at_time'];
+            $digestAtDay = $validatedData['digest_at_day'];
             
+            // Ensure time has seconds for storage if provided
             if ($digestAtTime && count(explode(':', $digestAtTime)) === 2) {
                 $digestAtTime .= ':00';
             }
