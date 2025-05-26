@@ -6,7 +6,6 @@ use Humweb\Notifications\Tests\Stubs\NotifyCommentCreated;
 use Humweb\Notifications\Tests\Stubs\NotifyCommentReply;
 use Humweb\Notifications\Tests\Stubs\NotifyEventNew;
 use Humweb\Notifications\Tests\Stubs\NotifyWithFilter;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
@@ -184,7 +183,7 @@ it('ChecksSubscription via method returns only immediate channels', function () 
     $this->user1->subscribe('event:new', 'database', 'daily', '09:00');
     $this->user1->subscribe('event:new', 'sms', 'weekly', '10:00', 'monday');
 
-    $notificationInstance = new NotifyEventNew((object)['id' => 1]);
+    $notificationInstance = new NotifyEventNew((object) ['id' => 1]);
     $viaChannels = $notificationInstance->via($this->user1);
 
     expect($viaChannels)->toBeArray()
@@ -234,7 +233,7 @@ it('subscribers method in DispatchesNotifications still returns all potential us
     // Let's add a digest subscription for user3 for comment:created mail
     $this->user3->subscribe('comment:created', 'mail', 'daily', '07:00');
 
-    $notification = new NotifyCommentCreated((object)['id' => 1]);
+    $notification = new NotifyCommentCreated((object) ['id' => 1]);
     $subscribers = $notification->subscribers();
 
     // Should include user1, user2 (from beforeEach immediate), and user3 (newly added digest)

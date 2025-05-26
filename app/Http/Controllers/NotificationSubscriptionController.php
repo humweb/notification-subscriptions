@@ -27,6 +27,7 @@ class NotificationSubscriptionController extends Controller
 
             $channels = collect($configuredChannels)->map(function ($channelConfig) use ($user, $type) {
                 $subscriptionDetails = $user ? $user->getSubscriptionDetails($type, $channelConfig['name']) : null;
+
                 return [
                     'name' => $channelConfig['name'],
                     'label' => $channelConfig['label'],
@@ -86,7 +87,7 @@ class NotificationSubscriptionController extends Controller
             $digestInterval = $request->input('digest_interval', 'immediate');
             $digestAtTime = $request->input('digest_at_time');
             $digestAtDay = $request->input('digest_at_day');
-            
+
             if ($digestAtTime && count(explode(':', $digestAtTime)) === 2) {
                 $digestAtTime .= ':00';
             }

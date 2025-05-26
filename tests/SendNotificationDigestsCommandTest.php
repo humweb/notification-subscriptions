@@ -62,6 +62,7 @@ it('sends daily digest when due', function () {
         expect($notification->channel)->toEqual('mail');
         expect($notification->pendingNotificationsData)->toHaveCount(1);
         expect($notification->pendingNotificationsData->first()['data']['content'])->toEqual('Test content 1');
+
         return true;
     });
 
@@ -89,6 +90,7 @@ it('sends weekly digest when due', function () {
     Notification::assertSentTo($this->user, UserNotificationDigest::class, function ($notification) {
         expect($notification->channel)->toEqual('database');
         expect($notification->pendingNotificationsData)->toHaveCount(1);
+
         return true;
     });
     $this->assertDatabaseMissing('pending_notifications', ['user_id' => $this->user->id, 'notification_type' => 'test:event']);
@@ -125,4 +127,4 @@ it('updates last_digest_sent_at even if no pending items for a due subscription'
 
 afterEach(function () {
     Carbon::setTestNow(); // Reset Carbon mock
-}); 
+});
