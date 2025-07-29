@@ -34,7 +34,7 @@ beforeEach(function () {
 });
 
 it('sends no digests if none are due', function () {
-    Carbon::setTestNow(Carbon::parse('2023-01-01 08:00:00'));
+    $this->travelTo(Carbon::parse('2023-01-01 08:00:00'));
     $this->user->subscribe('test:event', 'mail', 'daily', '09:00:00');
 
     $this->artisan('notifications:send-digests')
@@ -54,7 +54,7 @@ it('sends daily digest when due', function () {
         'created_at' => Carbon::parse('2023-01-01 08:30:00'),
     ]);
 
-    Carbon::setTestNow(Carbon::parse('2023-01-01 09:00:01'));
+    $this->travelTo(Carbon::parse('2023-01-01 09:00:01'));
 
     $this->artisan('notifications:send-digests')->assertExitCode(0);
 
@@ -83,7 +83,7 @@ it('sends weekly digest when due', function () {
     ]);
 
     // Set time to Wednesday 10:00 AM
-    Carbon::setTestNow(Carbon::parse('2023-01-04 10:00:00')); // This is a Wednesday
+    $this->travelTo(Carbon::parse('2023-01-04 10:00:00')); // This is a Wednesday
 
     $this->artisan('notifications:send-digests')->assertExitCode(0);
 
@@ -101,7 +101,7 @@ it('sends weekly digest when due', function () {
 it('does not send daily digest if time has not passed', function () {
     $this->user->subscribe('test:event', 'mail', 'daily', '09:00:00');
     PendingNotification::factory()->create(['user_id' => $this->user->id, 'notification_type' => 'test:event', 'channel' => 'mail']);
-    Carbon::setTestNow(Carbon::parse('2023-01-01 08:59:59'));
+    $this->travelTo(Carbon::parse('2023-01-01 08:59:59'));
     $this->artisan('notifications:send-digests');
     Notification::assertNothingSent();
 });
@@ -110,7 +110,7 @@ it('does not send daily digest if already sent today', function () {
     $this->user->subscribe('test:event', 'mail', 'daily', '09:00:00', null, null)
         ->update(['last_digest_sent_at' => Carbon::parse('2023-01-01 09:05:00')]);
     PendingNotification::factory()->create(['user_id' => $this->user->id, 'notification_type' => 'test:event', 'channel' => 'mail']);
-    Carbon::setTestNow(Carbon::parse('2023-01-01 10:00:00'));
+    $this->travelTo(Carbon::parse('2023-01-01 10:00:00'));
     $this->artisan('notifications:send-digests');
     Notification::assertNothingSent();
 });
@@ -118,7 +118,7 @@ it('does not send daily digest if already sent today', function () {
 it('updates last_digest_sent_at even if no pending items for a due subscription', function () {
     $this->user->subscribe('test:event', 'mail', 'daily', '09:00:00');
     // No pending notifications created
-    Carbon::setTestNow(Carbon::parse('2023-01-01 09:00:01'));
+    $this->travelTo(Carbon::parse('2023-01-01 09:00:01'));
     $this->artisan('notifications:send-digests')->assertExitCode(0);
     Notification::assertNothingSent();
     $subscription = $this->user->getSubscriptionDetails('test:event', 'mail');
@@ -126,5 +126,5 @@ it('updates last_digest_sent_at even if no pending items for a due subscription'
 });
 
 afterEach(function () {
-    Carbon::setTestNow(); // Reset Carbon mock
+    $this->travelBack(); // Reset Carbon mock
 });
