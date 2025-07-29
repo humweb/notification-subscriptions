@@ -5,10 +5,13 @@ namespace Humweb\Notifications\Console;
 use Humweb\Notifications\Models\NotificationSubscription;
 use Humweb\Notifications\Models\PendingNotification;
 use Illuminate\Console\Command;
+use Illuminate\Database\SQLiteConnection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as LaravelNotification;
+use Staudenmeir\LaravelCte\Connections\PostgresConnection;
 
 class SendNotificationDigests extends Command
 {
@@ -30,22 +33,27 @@ class SendNotificationDigests extends Command
                 $outerQuery->where(function ($dailyQuery) use ($now) {
                     // Daily digests
                     $dailyQuery->where('digest_interval', 'daily')
-                        ->whereTime('digest_at_time', '<=', $now->format('H:i:s'))
+                        ->whereTime('digest_at_time', '<=', $now->toTimeString()) // Use toTimeString() for clarity
                         ->where(function ($subQ) use ($now) {
                             $subQ->whereNull('last_digest_sent_at')
                                 ->orWhereDate('last_digest_sent_at', '<', $now->toDateString())
-                                ->orWhereRaw('DATE(last_digest_sent_at) = ? AND TIME(last_digest_sent_at) < digest_at_time', [$now->toDateString()]);
+                                // This handles the "sent today but before the scheduled time" case portably
+                                ->orWhere(function ($todayQuery) {
+                                    $todayQuery->whereDate('last_digest_sent_at', now()->toDateString())
+                                        ->whereTime('last_digest_sent_at', '<', DB::raw('digest_at_time'));
+                                });
                         });
                 })->orWhere(function ($weeklyQuery) use ($now) {
                     // Weekly digests
                     $weeklyQuery->where('digest_interval', 'weekly')
-                        ->whereRaw('LOWER(digest_at_day) = ?', [strtolower($now->format('l'))])
-                        ->whereTime('digest_at_time', '<=', $now->format('H:i:s'))
+                        ->whereRaw('LOWER(digest_at_day) = ?',
+                            [strtolower($now->format('l'))]) // LOWER() is standard and portable
+                        ->whereTime('digest_at_time', '<=', $now->toTimeString())
                         ->where(function ($subQ) use ($now) {
+                            // Calculate date in PHP to avoid DB-specific date functions
+                            $sixDaysAgo = $now->copy()->subDays(6);
                             $subQ->whereNull('last_digest_sent_at')
-                                ->orWhere(function ($innerWeeklyQ) use ($now) { // Renamed $weeklyQ to $innerWeeklyQ to avoid conflict
-                                    $innerWeeklyQ->whereRaw("last_digest_sent_at < datetime(?, '-6 days')", [$now->toDateTimeString()]);
-                                });
+                                ->orWhere('last_digest_sent_at', '<', $sixDaysAgo);
                         });
                 });
             });
@@ -84,13 +92,14 @@ class SendNotificationDigests extends Command
 
             $notificationDataForDigest = $pending->map(function ($item) {
                 return [
-                    'class' => $item->notification_class,
-                    'data' => $item->notification_data,
+                    'class'      => $item->notification_class,
+                    'data'       => $item->notification_data,
                     'created_at' => $item->created_at,
                 ];
             });
 
-            $digestNotificationClass = Config::get('notification-subscriptions.digest_notification_class', 'App\\Notifications\\UserNotificationDigest');
+            $digestNotificationClass = Config::get('notification-subscriptions.digest_notification_class',
+                'App\\Notifications\\UserNotificationDigest');
             Log::info("Using digest notification class: {$digestNotificationClass} for subscription ID: {$subscription->id}");
 
             if (! class_exists($digestNotificationClass)) {
@@ -110,7 +119,8 @@ class SendNotificationDigests extends Command
                 }
 
                 Log::info("Attempting to send digest to User ID: {$recipient->id} for subscription ID: {$subscription->id} via channel: {$subscription->channel}");
-                LaravelNotification::send($recipient, new $digestNotificationClass($subscription->channel, $notificationDataForDigest));
+                LaravelNotification::send($recipient,
+                    new $digestNotificationClass($subscription->channel, $notificationDataForDigest));
                 Log::info("Digest notification supposedly sent for subscription ID: {$subscription->id}.");
 
                 PendingNotification::whereIn('id', $pending->pluck('id'))->delete();
@@ -123,7 +133,8 @@ class SendNotificationDigests extends Command
 
             } catch (\Exception $e) {
                 $this->error("Failed to send digest for User ID: {$subscription->user_id}, Type: {$subscription->type}, Channel: {$subscription->channel}. Error: ".$e->getMessage());
-                Log::error("Exception during digest sending for subscription ID: {$subscription->id}. Error: ".$e->getMessage(), ['exception' => $e]);
+                Log::error("Exception during digest sending for subscription ID: {$subscription->id}. Error: ".$e->getMessage(),
+                    ['exception' => $e]);
             }
         }
 
