@@ -87,8 +87,8 @@ class SendNotificationDigests extends Command
 
             $notificationDataForDigest = $pending->map(function ($item) {
                 return [
-                    'class'      => $item->notification_class,
-                    'data'       => $item->notification_data,
+                    'class' => $item->notification_class,
+                    'data' => $item->notification_data,
                     'created_at' => $item->created_at,
                 ];
             });
