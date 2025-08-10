@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Str;
 
 class UserNotificationDigest extends Notification implements ShouldQueue
 {
@@ -41,10 +42,8 @@ class UserNotificationDigest extends Notification implements ShouldQueue
 
     /**
      * Get the mail representation of the notification.
-     *
-     * @param  mixed  $notifiable
      */
-    public function toMail($notifiable): MailMessage
+    public function toMail(mixed $notifiable): MailMessage
     {
         $mailMessage = (new MailMessage)
             ->subject('Your Notification Digest')
@@ -55,17 +54,30 @@ class UserNotificationDigest extends Notification implements ShouldQueue
             // This is a basic example. You'd likely want more sophisticated rendering
             // based on $item['class'] and $item['data'].
             $notificationInstance = null;
-            if (class_exists($item['class'])) {
+            if (! empty($item['class']) && class_exists($item['class'])) {
                 try {
-                    // Create the original notification instance with its data
-                    // The data stored should be the constructor arguments array
-                    $notificationInstance = new $item['class'](...(is_array($item['data']) ? $item['data'] : [$item['data']]));
+                    $data = $item['data'] ?? [];
+
+                    if (is_array($data) && ! $this->isAssoc($data)) {
+                        // Positional args
+                        $notificationInstance = new $item['class'](...$data);
+                    } elseif (is_array($data)) {
+                        // Named args via container
+                        $notificationInstance = app()->makeWith($item['class'], $data);
+                    } else {
+                        // Single value as positional
+                        $notificationInstance = new $item['class']($data);
+                    }
                 } catch (\Throwable $e) {
-                    // Could not instantiate, perhaps constructor args changed or class is complex
+                    // Optional: uncomment to help debug during development
+                    // logger()->warning('Failed to instantiate notification for digest', [
+                    //     'class' => $item['class'],
+                    //     'error' => $e->getMessage(),
+                    // ]);
                 }
             }
 
-            $summary = 'Notification: '.class_basename($item['class']).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
+            $summary = 'Notification: '.$this->toTitleCase(class_basename($item['class'])).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
 
             // If the original notification has a toText() or toArray() method, you could use it.
             // For now, a generic line.
@@ -100,7 +112,7 @@ class UserNotificationDigest extends Notification implements ShouldQueue
             'summary' => 'You have '.$this->pendingNotificationsData->count().' new notifications.',
             'items' => $this->pendingNotificationsData->map(function ($item) {
                 return [
-                    'type' => class_basename($item['class']),
+                    'type' => $this->toTitleCase(class_basename($item['class'])),
                     'data' => $item['data'], // The raw data, frontend can decide how to render
                     'received_at' => $item['created_at']->toIso8601String(),
                     // Consider adding a method to original notifications like `toDigestEntry()`
@@ -110,5 +122,17 @@ class UserNotificationDigest extends Notification implements ShouldQueue
         ];
     }
 
-    // TODO: Add toBroadcast, toVonage, etc. methods if digests need to go via other channels.
+    public function toTitleCase(string $str): string
+    {
+        return ucwords(Str::of(Str::snake($str))->replace('_', ' '));
+    }
+
+    private function isAssoc(array $arr): bool
+    {
+        if ($arr === []) {
+            return false;
+        }
+
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
 }
