@@ -56,15 +56,29 @@ class UserNotificationDigest extends Notification implements ShouldQueue
             // This is a basic example. You'd likely want more sophisticated rendering
             // based on $item['class'] and $item['data'].
             $notificationInstance = null;
-            if (class_exists($item['class'])) {
+            if (! empty($item['class']) && class_exists($item['class'])) {
                 try {
-                    // Create the original notification instance with its data
-                    // The data stored should be the constructor arguments array
-                    $notificationInstance = new $item['class'](...(is_array($item['data']) ? $item['data'] : [$item['data']]));
+                    $data = $item['data'] ?? [];
+
+                    if (is_array($data) && ! $this->isAssoc($data)) {
+                        // Positional args
+                        $notificationInstance = new $item['class'](...$data);
+                    } elseif (is_array($data)) {
+                        // Named args via container
+                        $notificationInstance = app()->makeWith($item['class'], $data);
+                    } else {
+                        // Single value as positional
+                        $notificationInstance = new $item['class']($data);
+                    }
                 } catch (\Throwable $e) {
-                    // Could not instantiate, perhaps constructor args changed or class is complex
+                    // Optional: uncomment to help debug during development
+                    // logger()->warning('Failed to instantiate notification for digest', [
+                    //     'class' => $item['class'],
+                    //     'error' => $e->getMessage(),
+                    // ]);
                 }
             }
+
 
             $summary = 'Notification: '.$this->toTitleCase(class_basename($item['class'])).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
 
@@ -97,12 +111,12 @@ class UserNotificationDigest extends Notification implements ShouldQueue
     {
         // This is for database type digests
         return [
-            'title' => 'Your Notification Digest',
+            'title'   => 'Your Notification Digest',
             'summary' => 'You have '.$this->pendingNotificationsData->count().' new notifications.',
-            'items' => $this->pendingNotificationsData->map(function ($item) {
+            'items'   => $this->pendingNotificationsData->map(function ($item) {
                 return [
-                    'type' => $this->toTitleCase(class_basename($item['class'])),
-                    'data' => $item['data'], // The raw data, frontend can decide how to render
+                    'type'        => $this->toTitleCase(class_basename($item['class'])),
+                    'data'        => $item['data'], // The raw data, frontend can decide how to render
                     'received_at' => $item['created_at']->toIso8601String(),
                     // Consider adding a method to original notifications like `toDigestEntry()`
                     // for a structured summary if `data` is too raw for generic display.
@@ -111,8 +125,25 @@ class UserNotificationDigest extends Notification implements ShouldQueue
         ];
     }
 
-    public function toTitleCase(string $str)
+    /**
+     * @param  string  $str
+     * @return string
+     */
+    public function toTitleCase(string $str): string
     {
         return ucwords(Str::of(Str::snake($str))->replace('_', ' '));
     }
+
+    /**
+     * @param  array  $arr
+     * @return bool
+     */
+    private function isAssoc(array $arr): bool
+    {
+        if ($arr === []) {
+            return false;
+        }
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
 }
+
