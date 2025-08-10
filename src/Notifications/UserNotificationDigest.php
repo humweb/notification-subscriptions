@@ -42,8 +42,6 @@ class UserNotificationDigest extends Notification implements ShouldQueue
 
     /**
      * Get the mail representation of the notification.
-     *
-     * @param  mixed  $notifiable
      */
     public function toMail(mixed $notifiable): MailMessage
     {
@@ -79,7 +77,6 @@ class UserNotificationDigest extends Notification implements ShouldQueue
                 }
             }
 
-
             $summary = 'Notification: '.$this->toTitleCase(class_basename($item['class'])).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
 
             // If the original notification has a toText() or toArray() method, you could use it.
@@ -111,12 +108,12 @@ class UserNotificationDigest extends Notification implements ShouldQueue
     {
         // This is for database type digests
         return [
-            'title'   => 'Your Notification Digest',
+            'title' => 'Your Notification Digest',
             'summary' => 'You have '.$this->pendingNotificationsData->count().' new notifications.',
-            'items'   => $this->pendingNotificationsData->map(function ($item) {
+            'items' => $this->pendingNotificationsData->map(function ($item) {
                 return [
-                    'type'        => $this->toTitleCase(class_basename($item['class'])),
-                    'data'        => $item['data'], // The raw data, frontend can decide how to render
+                    'type' => $this->toTitleCase(class_basename($item['class'])),
+                    'data' => $item['data'], // The raw data, frontend can decide how to render
                     'received_at' => $item['created_at']->toIso8601String(),
                     // Consider adding a method to original notifications like `toDigestEntry()`
                     // for a structured summary if `data` is too raw for generic display.
@@ -125,25 +122,17 @@ class UserNotificationDigest extends Notification implements ShouldQueue
         ];
     }
 
-    /**
-     * @param  string  $str
-     * @return string
-     */
     public function toTitleCase(string $str): string
     {
         return ucwords(Str::of(Str::snake($str))->replace('_', ' '));
     }
 
-    /**
-     * @param  array  $arr
-     * @return bool
-     */
     private function isAssoc(array $arr): bool
     {
         if ($arr === []) {
             return false;
         }
+
         return array_keys($arr) !== range(0, count($arr) - 1);
     }
 }
-
