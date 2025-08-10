@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Str;
 
 class UserNotificationDigest extends Notification implements ShouldQueue
 {
@@ -44,7 +45,7 @@ class UserNotificationDigest extends Notification implements ShouldQueue
      *
      * @param  mixed  $notifiable
      */
-    public function toMail($notifiable): MailMessage
+    public function toMail(mixed $notifiable): MailMessage
     {
         $mailMessage = (new MailMessage)
             ->subject('Your Notification Digest')
@@ -65,7 +66,7 @@ class UserNotificationDigest extends Notification implements ShouldQueue
                 }
             }
 
-            $summary = 'Notification: '.class_basename($item['class']).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
+            $summary = 'Notification: '.$this->toTitleCase(class_basename($item['class'])).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
 
             // If the original notification has a toText() or toArray() method, you could use it.
             // For now, a generic line.
@@ -100,7 +101,7 @@ class UserNotificationDigest extends Notification implements ShouldQueue
             'summary' => 'You have '.$this->pendingNotificationsData->count().' new notifications.',
             'items' => $this->pendingNotificationsData->map(function ($item) {
                 return [
-                    'type' => class_basename($item['class']),
+                    'type' => $this->toTitleCase(class_basename($item['class'])),
                     'data' => $item['data'], // The raw data, frontend can decide how to render
                     'received_at' => $item['created_at']->toIso8601String(),
                     // Consider adding a method to original notifications like `toDigestEntry()`
@@ -110,5 +111,8 @@ class UserNotificationDigest extends Notification implements ShouldQueue
         ];
     }
 
-    // TODO: Add toBroadcast, toVonage, etc. methods if digests need to go via other channels.
+    public function toTitleCase(string $str)
+    {
+        return ucwords(Str::of(Str::snake($str))->replace('_', ' '));
+    }
 }
