@@ -5,12 +5,10 @@ namespace Humweb\Notifications\Notifications;
 use Humweb\Notifications\Digest\DigestMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\View;
 use Str;
 
 class UserNotificationDigest extends Notification implements ShouldQueue
@@ -110,7 +108,7 @@ class UserNotificationDigest extends Notification implements ShouldQueue
             $summary = 'Notification: '.$this->toTitleCase(class_basename($item['class'])).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
 
             if ($notificationInstance && method_exists($notificationInstance, 'toDigest')) {
-                $builder = new DigestMessage();
+                $builder = new DigestMessage;
                 $notificationInstance->toDigest($notifiable, $builder, $item['data']);
                 $components = array_merge($components, $builder->components());
             } elseif ($notificationInstance && method_exists($notificationInstance, 'toDigestFormat')) {

@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notification;
 class StructuredDigestNotification extends Notification
 {
     public string $first;
+
     public string $second;
 
     public function __construct(string $first, string $second)
@@ -24,5 +25,3 @@ class StructuredDigestNotification extends Notification
             ->bulletList(['Alpha detail', 'Beta detail']);
     }
 }
-
-

@@ -7,6 +7,7 @@ use Illuminate\Notifications\Notification;
 class DigestFormatNotification extends Notification
 {
     public string $first;
+
     public string $second;
 
     public function __construct(string $first, string $second)
