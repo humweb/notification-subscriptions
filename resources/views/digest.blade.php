@@ -1,54 +1,34 @@
-@php
-    $components = $components ?? [];
-    $subject = $subject ?? 'Your Notification Digest';
-@endphp
-
+@php $components = $components ?? []; $subject = $subject ?? 'Your Notification Digest'; @endphp
 @component('mail::message')
 # {{ $subject }}
 
 @foreach($components as $c)
-    @switch($c['type'])
-        @case('heading')
-            @if(($c['level'] ?? 2) === 1)
-                # {{ $c['text'] }}
-            @elseif(($c['level'] ?? 2) === 2)
-                ## {{ $c['text'] }}
-            @elseif(($c['level'] ?? 2) === 3)
-                ### {{ $c['text'] }}
-            @else
-                #### {{ $c['text'] }}
-            @endif
-            @break
+@if(($c['type'] ?? null) === 'heading')
+@php $lvl = max(1, min(4, $c['level'] ?? 2)); $prefix = str_repeat('#', $lvl); @endphp
+{{ $prefix }} {{ $c['text'] }}
 
-        @case('line')
-            {{ $c['text'] }}
+@elseif(($c['type'] ?? null) === 'line')
+{{ $c['text'] }}
 
-            @break
+@elseif(($c['type'] ?? null) === 'panel')
+@component('mail::panel')
+{{ $c['text'] }}
+@endcomponent
 
-        @case('panel')
-            @component('mail::panel')
-                {{ $c['text'] }}
-            @endcomponent
-            @break
+@elseif(($c['type'] ?? null) === 'button')
+@component('mail::button', ['url' => $c['url'], 'color' => $c['color'] ?? 'primary'])
+{{ $c['text'] }}
+@endcomponent
 
-        @case('button')
-            @component('mail::button', ['url' => $c['url'], 'color' => $c['color'] ?? 'primary'])
-                {{ $c['text'] }}
-            @endcomponent
-            @break
+@elseif(($c['type'] ?? null) === 'list')
+@foreach(($c['items'] ?? []) as $item)
+- {{ $item }}
+@endforeach
 
-        @case('list')
-            @foreach(($c['items'] ?? []) as $item)
-            - {{ $item }}
-            @endforeach
+@elseif(($c['type'] ?? null) === 'separator')
+---
 
-            @break
-
-        @case('separator')
-            ---
-
-            @break
-    @endswitch
+@endif
 @endforeach
 
 Thanks,
