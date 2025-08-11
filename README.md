@@ -14,6 +14,8 @@ Notification Subscriptions allows your users to subscribe to certain notificatio
 -   [Installation](./docs/installation.md)
 -   [Configuration](./docs/configuration.md)
 -   [Usage](./docs/usage/subscribable-trait.md)
+-   [Usage](./docs/usage/subscribable-trait.md)
+    -   [Digest System (with structured builder)](./docs/usage/digest-system.md)
 -   [License](./docs/license.md)
 
 ## Installation

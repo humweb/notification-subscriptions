@@ -2,11 +2,13 @@
 
 namespace Humweb\Notifications\Notifications;
 
+use Humweb\Notifications\Digest\DigestMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 use Str;
 
 class UserNotificationDigest extends Notification implements ShouldQueue
@@ -45,58 +47,93 @@ class UserNotificationDigest extends Notification implements ShouldQueue
      */
     public function toMail(mixed $notifiable): MailMessage
     {
+        $subject = Config::get('notification-subscriptions.digest_subject', 'Your Notification Digest');
+        $view = Config::get('notification-subscriptions.digest_markdown_view', 'notification-subscriptions::digest');
+
         $mailMessage = (new MailMessage)
-            ->subject('Your Notification Digest')
-            ->line('Here is a summary of your recent notifications:');
+            ->subject($subject);
+
+        // Add intro immediately for BC with tests expecting introLines
+        $intro = 'Here is a summary of your recent notifications:';
+        $mailMessage->line($intro);
+
+        [$components, $usedStructuredComponents] = $this->compileComponents($notifiable);
+
+        if ($usedStructuredComponents) {
+            $mailMessage->markdown($view, [
+                'subject' => $subject,
+                'components' => $components,
+            ]);
+        } else {
+            // Render as simple text lines for backward compatibility
+            foreach ($components as $component) {
+                if ($component['type'] === 'line') {
+                    $mailMessage->line($component['text']);
+                } elseif ($component['type'] === 'separator') {
+                    $mailMessage->line('---');
+                }
+            }
+            $mailMessage->line('You can manage your notification preferences in your profile settings.');
+        }
+
+        return $mailMessage;
+    }
+
+    /**
+     * Build the digest components array and indicate if any structured components were used.
+     *
+     * @return array{0: array<int, array<string, mixed>>, 1: bool}
+     */
+    public function compileComponents(mixed $notifiable): array
+    {
+        $components = [];
 
         foreach ($this->pendingNotificationsData as $item) {
-            // Attempt to get a human-readable summary for each pending item.
-            // This is a basic example. You'd likely want more sophisticated rendering
-            // based on $item['class'] and $item['data'].
             $notificationInstance = null;
             if (! empty($item['class']) && class_exists($item['class'])) {
                 try {
                     $data = $item['data'] ?? [];
-
                     if (is_array($data) && ! $this->isAssoc($data)) {
-                        // Positional args
                         $notificationInstance = new $item['class'](...$data);
                     } elseif (is_array($data)) {
-                        // Named args via container
                         $notificationInstance = app()->makeWith($item['class'], $data);
                     } else {
-                        // Single value as positional
                         $notificationInstance = new $item['class']($data);
                     }
                 } catch (\Throwable $e) {
-                    // Optional: uncomment to help debug during development
-                    // logger()->warning('Failed to instantiate notification for digest', [
-                    //     'class' => $item['class'],
-                    //     'error' => $e->getMessage(),
-                    // ]);
+                    // ignore instantiation issues; fall back to summary
                 }
             }
 
             $summary = 'Notification: '.$this->toTitleCase(class_basename($item['class'])).' (Received: '.$item['created_at']->format('Y-m-d H:i').')';
 
-            // If the original notification has a toText() or toArray() method, you could use it.
-            // For now, a generic line.
-            if ($notificationInstance && method_exists($notificationInstance, 'toDigestFormat')) {
-                $summary = $notificationInstance->toDigestFormat($notifiable, $item['data']);
-                $mailMessage->line($summary);
+            if ($notificationInstance && method_exists($notificationInstance, 'toDigest')) {
+                $builder = new DigestMessage;
+                $notificationInstance->toDigest($notifiable, $builder, $item['data']);
+                $components = array_merge($components, $builder->components());
+            } elseif ($notificationInstance && method_exists($notificationInstance, 'toDigestFormat')) {
+                $text = $notificationInstance->toDigestFormat($notifiable, $item['data']);
+                $components[] = ['type' => 'line', 'text' => $text];
             } elseif ($notificationInstance && method_exists($notificationInstance, 'toArray')) {
-                // Fallback to a generic array representation if available
                 $arrayData = $notificationInstance->toArray($notifiable);
-                $mailMessage->line('Update: '.($arrayData['title'] ?? class_basename($item['class'])).' - '.($arrayData['message'] ?? 'Details in app.'));
+                $text = 'Update: '.($arrayData['title'] ?? class_basename($item['class'])).' - '.($arrayData['message'] ?? 'Details in app.');
+                $components[] = ['type' => 'line', 'text' => $text];
             } else {
-                $mailMessage->line($summary);
+                $components[] = ['type' => 'line', 'text' => $summary];
             }
-            $mailMessage->line('---'); // Separator
+
+            $components[] = ['type' => 'separator'];
         }
 
-        $mailMessage->line('You can manage your notification preferences in your profile settings.');
+        $usedStructuredComponents = false;
+        foreach ($components as $c) {
+            if (in_array($c['type'], ['heading', 'panel', 'button', 'list'], true)) {
+                $usedStructuredComponents = true;
+                break;
+            }
+        }
 
-        return $mailMessage;
+        return [$components, $usedStructuredComponents];
     }
 
     /**
