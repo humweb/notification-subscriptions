@@ -81,29 +81,9 @@ class UserNotificationDigest extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $mailMessage = (new MailMessage)
-            ->subject('Your Notification Digest');
-
-        if ($this->pendingNotificationsData->isEmpty()) {
-            $mailMessage->line('You have no new notifications in this digest period.');
-            return $mailMessage;
-        }
-
-        $mailMessage->line('Here is a summary of your notifications:');
-
-        foreach ($this->pendingNotificationsData as $item) {
-            // Customize how each item in the digest is displayed
-            // $item['class'] is the original notification class
-            // $item['data'] contains the original constructor arguments for that notification
-            // $item['created_at'] is when the original notification was triggered
-            $mailMessage->line("--- ({$item['created_at']->format('M d, H:i')}) ---");
-            $mailMessage->line("Type: {$item['class']}"); // Example
-            // You might want to load $item['data'] into the original notification class
-            // and call a ->toDigestMail() method on it, or format data directly.
-            $dataString = implode(', ', array_map(fn($k, $v) => "$k: " . (is_object($v) || is_array($v) ? json_encode($v) : $v), array_keys($item['data']), $item['data']));
-            $mailMessage->line("Details: {$dataString}");
-        }
-        return $mailMessage;
+        // The package provides a default digest email format and a new structured builder.
+        // See "Structured Digest Builder" section below for a richer experience.
+        return (new MailMessage)->subject('Your Notification Digest');
     }
 
     public function toArray($notifiable): array
@@ -122,6 +102,40 @@ return [
     }
 }
 ```
+
+## Structured Digest Builder
+
+For rich, customizable digest emails (buttons, panels, headings, lists), implement a `toDigest($notifiable, \Humweb\Notifications\Digest\DigestMessage $digest, $data)` method on your original notification class (the one being batched into a digest).
+
+Example on a batched notification:
+
+```php
+use Humweb\Notifications\Digest\DigestMessage;
+
+public function toDigest($notifiable, DigestMessage $digest, $data): void
+{
+    $digest
+        ->heading('Recent Activity')
+        ->line($this->title)
+        ->panel('Summary text')
+        ->button('View', url('/items/'.$this->id))
+        ->bulletList(['Item A', 'Item B'])
+        ->separator();
+}
+```
+
+When any structured components are present, the package renders the email using a markdown view. You can override the subject and view via config:
+
+-   `notification-subscriptions.digest_subject` (default: "Your Notification Digest")
+-   `notification-subscriptions.digest_markdown_view` (default: `notification-subscriptions::digest`)
+
+Default view provided: `resources/views/digest.blade.php` (registered by the service provider), which uses the built-in `mail::message` components.
+
+If `toDigest(...)` is not defined, the system falls back to:
+
+1. `toDigestFormat($notifiable, $data)` on the original notification (plain line), or
+2. `toArray($notifiable)` to assemble a basic line, or
+3. A generic summary line.
 
 ## How it Works Together
 

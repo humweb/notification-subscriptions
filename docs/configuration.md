@@ -40,6 +40,10 @@ return [
     // Default notification class for digests
     'digest_notification_class' => \Humweb\Notifications\Notifications\UserNotificationDigest::class,
 
+    // Digest email subject and markdown view
+    'digest_subject' => 'Your Notification Digest',
+    'digest_markdown_view' => 'notification-subscriptions::digest',
+
     // Available digest intervals for users to choose from
     'digest_intervals' => [
         'immediate' => 'Immediate',

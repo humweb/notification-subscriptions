@@ -14,7 +14,7 @@ Notification Subscriptions allows your users to subscribe to certain notificatio
 -   Usage
     -   [Subscribable Trait](./usage/subscribable-trait.md)
     -   [Dispatching Notifications](./usage/dispatching-notifications.md)
-    -   [Digest System](./usage/digest-system.md)
+    -   [Digest System](./usage/digest-system.md) (now with structured builder: buttons, panels, lists)
 -   [Frontend Example](./frontend-example.md)
 -   [Testing](./testing.md)
 -   [Changelog](./changelog.md)
