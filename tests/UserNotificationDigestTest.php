@@ -3,10 +3,9 @@
 use Humweb\Notifications\Notifications\UserNotificationDigest;
 use Humweb\Notifications\Tests\Stubs\ArrayFormatNotification;
 use Humweb\Notifications\Tests\Stubs\DigestFormatNotification;
-use Humweb\Notifications\Tests\Stubs\StructuredDigestNotification;
 use Humweb\Notifications\Tests\Stubs\NotifyCommentCreated;
+use Humweb\Notifications\Tests\Stubs\StructuredDigestNotification;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 
 it('returns the specified channel via()', function () {

@@ -69,5 +69,3 @@ class DigestMessage
         return $this;
     }
 }
-
-

@@ -7,6 +7,7 @@ use Illuminate\Notifications\Notification;
 class ArrayFormatNotification extends Notification
 {
     public string $title;
+
     public string $message;
 
     // Constructor designed for associative/named args
