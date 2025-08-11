@@ -73,6 +73,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Digest Subject and View
+    |--------------------------------------------------------------------------
+    |
+    | Allow applications to easily override the default subject and markdown
+    | view used to render digest emails. The view should exist in the host app
+    | or can use the package view: 'notification-subscriptions::digest'.
+    */
+    'digest_subject' => 'Your Notification Digest',
+    'digest_markdown_view' => 'notification-subscriptions::digest',
+
+    /*
+    |--------------------------------------------------------------------------
     | Subscribable Notification Types
     |--------------------------------------------------------------------------
     |

@@ -3,9 +3,11 @@
 use Humweb\Notifications\Notifications\UserNotificationDigest;
 use Humweb\Notifications\Tests\Stubs\ArrayFormatNotification;
 use Humweb\Notifications\Tests\Stubs\DigestFormatNotification;
+use Humweb\Notifications\Tests\Stubs\StructuredDigestNotification;
 use Humweb\Notifications\Tests\Stubs\NotifyCommentCreated;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Config;
 
 it('returns the specified channel via()', function () {
     $digest = new UserNotificationDigest('mail', collect());
@@ -54,9 +56,13 @@ it('toMail() uses toDigestFormat when available (positional args)', function () 
 
     expect($arr['subject'])->toBe('Your Notification Digest');
     expect($arr['introLines'])->toContain('Here is a summary of your recent notifications:');
-    expect($arr['introLines'])->toContain('Digest for alpha and beta');
-    expect($arr['introLines'])->toContain('---');
-    expect($arr['introLines'])->toContain('You can manage your notification preferences in your profile settings.');
+
+    // Ensure compileComponents contains expected summary line
+    [$components, $usedStructured] = $digest->compileComponents((object) ['id' => 1]);
+    $texts = array_map(fn ($c) => $c['type'] === 'line' ? $c['text'] : ($c['type'] === 'separator' ? '---' : ''), $components);
+    $joined = implode("\n", array_filter($texts));
+    expect($joined)->toContain('Digest for alpha and beta');
+    expect($joined)->toContain('---');
 });
 
 it('toMail() falls back to toArray() when toDigestFormat is not present (associative args)', function () {
@@ -91,6 +97,28 @@ it('toMail() uses default summary when notification has no special methods', fun
 
     $expectedSummary = 'Notification: Notify Comment Created (Received: '.$createdAt->format('Y-m-d H:i').')';
     expect($arr['introLines'])->toContain($expectedSummary);
+});
+
+it('toMail() renders structured components when a notification uses toDigest()', function () {
+    // Use the package view
+    Config::set('notification-subscriptions.digest_markdown_view', 'notification-subscriptions::digest');
+
+    $items = collect([
+        [
+            'class' => StructuredDigestNotification::class,
+            'data' => ['alpha', 'beta'],
+            'created_at' => Carbon::parse('2023-01-01 08:30:00'),
+        ],
+    ]);
+
+    $digest = new UserNotificationDigest('mail', $items);
+    // Directly inspect compiled components (source of truth for rendering)
+    [$components, $usedStructured] = $digest->compileComponents((object) ['id' => 1]);
+    expect($usedStructured)->toBeTrue();
+    $types = array_values(array_unique(array_map(fn ($c) => $c['type'], $components)));
+    expect($types)->toContain('heading');
+    expect($types)->toContain('button');
+    expect($types)->toContain('list');
 });
 
 it('toMail() handles invalid class gracefully using default summary', function () {
