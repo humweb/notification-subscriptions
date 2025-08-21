@@ -9,8 +9,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * @property int $id
  * @property int $user_id
  * @property string $type
+ * @property string $channel
+ * @property string $digest_interval
+ * @property string $digest_at_time
+ * @property string $digest_at_day
+ * @property \Illuminate\Support\Carbon|null $last_digest_sent_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
  *
  * @method static Builder|NotificationSubscription ofType($type)
  */

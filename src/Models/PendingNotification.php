@@ -7,6 +7,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Represents a pending notification within the application.
+ *
+ * This model is associated with the `pending_notifications` table
+ * and is used to store and manage notifications that are pending delivery.
+ * @property int $id
+ * @property int $user_id
+ * @property string $notification_type
+ * @property string $channel
+ * @property string $notification_class
+ * @property array $notification_data
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class PendingNotification extends Model
 {
     use HasFactory;
