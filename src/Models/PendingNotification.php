@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * This model is associated with the `pending_notifications` table
  * and is used to store and manage notifications that are pending delivery.
+ *
  * @property int $id
  * @property int $user_id
  * @property string $notification_type
